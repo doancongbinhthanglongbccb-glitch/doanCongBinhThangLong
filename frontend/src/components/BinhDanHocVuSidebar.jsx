@@ -1,3 +1,4 @@
+export { default } from "@/shared/components/BinhDanHocVuSidebar";
 import { Link } from "react-router-dom";
 
 const resolvePostLink = (item) => {

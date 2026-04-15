@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+export { default } from "@/shared/components/NavBar";
 import { useState } from "react";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
