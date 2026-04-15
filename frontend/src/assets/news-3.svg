@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800" role="img" aria-label="News image 3 placeholder">
+  <rect width="1280" height="800" fill="#2f2f5f"/>
+  <rect x="80" y="90" width="1120" height="620" rx="20" fill="#5f63bf"/>
+  <text x="130" y="210" font-family="Segoe UI, Arial, sans-serif" font-size="78" font-weight="700" fill="#ffffff">NEWS 03</text>
+  <text x="130" y="300" font-family="Segoe UI, Arial, sans-serif" font-size="36" fill="#ecebff">Engineering competition</text>
+</svg>
