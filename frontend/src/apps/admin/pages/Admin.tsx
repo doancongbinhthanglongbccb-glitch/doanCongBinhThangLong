@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState, type ElementType } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, BookOpen, Home, LayoutDashboard, LibraryBig, Shield, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BookOpen, Home, LayoutDashboard, LibraryBig, MenuSquare, Settings, Shield, Sparkles } from "lucide-react";
+import AdminLayout from "@/shared/layouts/AdminLayout";
 import Dashboard from "./Dashboard";
 import TrangChuManager from "./TrangChuManager";
 import GioiThieuManager from "./GioiThieuManager";
@@ -9,21 +8,50 @@ import HoatDongManager from "./HoatDongManager";
 import GuongBacManager from "./GuongBacManager";
 import ThuVienManager from "./ThuVienManager";
 import SidebarManager from "./SidebarManager";
+import HeaderSettingsManager from "./HeaderSettingsManager";
+import MenuManager from "./MenuManager";
+import FooterSettingsManager from "./FooterSettingsManager";
 import { createCollectionItem, deleteCollectionItem, getCmsData, updateCmsData, updateCollectionItem } from "@/services/api/cmsApi";
 import { createPost, deletePost, updatePost } from "@/services/api/postApi";
 import type { CmsCollectionKey, CmsData } from "@/shared/types/cms";
 import type { CreatePostInput, UpdatePostInput } from "@/shared/types/post";
 
-type AdminKey = "dashboard" | "trang-chu" | "gioi-thieu" | "hoat-dong" | "guong-bac" | "thu-vien" | "binh-dan";
+type AdminKey =
+  | "dashboard"
+  | "trang-chu"
+  | "header"
+  | "menu"
+  | "footer"
+  | "gioi-thieu"
+  | "hoat-dong"
+  | "guong-bac"
+  | "thu-vien"
+  | "binh-dan";
 
-const menus: Array<{ key: AdminKey; label: string; icon: ElementType }> = [
-  { key: "dashboard", label: "Tổng quan", icon: LayoutDashboard },
-  { key: "trang-chu", label: "Trang chủ", icon: Home },
-  { key: "gioi-thieu", label: "Giới thiệu", icon: BookOpen },
-  { key: "hoat-dong", label: "Hoạt động đơn vị", icon: Shield },
-  { key: "guong-bac", label: "Theo gương Bác", icon: Sparkles },
-  { key: "thu-vien", label: "Thư viện", icon: LibraryBig },
-  { key: "binh-dan", label: "Bình dân học vụ số", icon: LibraryBig },
+type AdminMenuItem = { key: AdminKey; label: string; icon: ElementType };
+type AdminMenuSection = { label: string; items: AdminMenuItem[] };
+
+const menuSections: AdminMenuSection[] = [
+  {
+    label: "NỘI DUNG",
+    items: [
+      { key: "dashboard", label: "Bảng điều khiển", icon: LayoutDashboard },
+      { key: "trang-chu", label: "Trang chủ", icon: Home },
+      { key: "gioi-thieu", label: "Giới thiệu", icon: BookOpen },
+      { key: "hoat-dong", label: "Hoạt động đơn vị", icon: Shield },
+      { key: "guong-bac", label: "Theo gương Bác", icon: Sparkles },
+      { key: "thu-vien", label: "Thư viện", icon: LibraryBig },
+      { key: "binh-dan", label: "Bình dân học vụ số", icon: Sparkles },
+    ],
+  },
+  {
+    label: "CẤU HÌNH",
+    items: [
+      { key: "header", label: "Cấu hình Header", icon: Settings },
+      { key: "menu", label: "Quản lý Menu", icon: MenuSquare },
+      { key: "footer", label: "Cấu hình Footer", icon: LibraryBig },
+    ],
+  },
 ];
 
 const Admin = () => {
@@ -39,7 +67,7 @@ const Admin = () => {
       setData(snapshot);
       setError("");
     } catch {
-      setError("Không thể tải dữ liệu Admin CMS.");
+      setError("Không thể tải dữ liệu quản trị viên.");
     } finally {
       setLoading(false);
     }
@@ -104,7 +132,7 @@ const Admin = () => {
   };
 
   if (loading || !data) {
-    return <div className="container py-10">Đang tải Admin CMS...</div>;
+    return <div className="container py-10">Đang tải bảng quản trị viên...</div>;
   }
 
   if (error) {
@@ -112,58 +140,26 @@ const Admin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="flex min-h-screen">
-        <aside className="hidden w-72 border-r border-slate-200 bg-white lg:block">
-          <div className="border-b border-slate-200 px-6 py-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Admin CMS</p>
-            <h1 className="mt-2 text-2xl font-bold">Quản trị website</h1>
-            <p className="mt-2 text-sm text-slate-500">Quản lý nội dung theo đúng cấu trúc website.</p>
-          </div>
-          <nav className="space-y-1 p-4">
-            {menus.map((item) => {
-              const Icon = item.icon;
-              const activeClass = active === item.key ? "bg-slate-900 text-white" : "hover:bg-slate-100 text-slate-700";
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => setActive(item.key)}
-                  className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold ${activeClass}`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </button>
-              );
-            })}
-          </nav>
-          <div className="border-t border-slate-200 p-4">
-            <Button asChild variant="outline" className="w-full justify-start">
-              <Link to="/">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Về website
-              </Link>
-            </Button>
-          </div>
-        </aside>
-
-        <div className="flex-1">
-          <header className="border-b border-slate-200 bg-white px-4 py-4 lg:px-8">
-            <h2 className="text-2xl font-bold">Trang quản trị nội dung</h2>
-          </header>
-
-          <main className="space-y-6 px-4 py-6 lg:px-8">
-            {active === "dashboard" && <Dashboard data={data} />}
-            {active === "trang-chu" && <TrangChuManager data={data} updateSiteData={updateSiteData} />}
-            {active === "gioi-thieu" && <GioiThieuManager data={data} updateSiteData={updateSiteData} />}
-            {active === "hoat-dong" && <HoatDongManager data={data} createItem={createItem} updateItem={updateItem} deleteItem={deleteItem} />}
-            {active === "guong-bac" && <GuongBacManager data={data} createItem={createItem} updateItem={updateItem} deleteItem={deleteItem} />}
-            {active === "thu-vien" && <ThuVienManager data={data} createItem={createItem} updateItem={updateItem} deleteItem={deleteItem} />}
-            {active === "binh-dan" && <SidebarManager data={data} createItem={createItem} updateItem={updateItem} deleteItem={deleteItem} />}
-          </main>
-        </div>
-      </div>
-    </div>
+    <AdminLayout menuSections={menuSections} active={active} onChange={(key) => setActive(key as AdminKey)}>
+      {active === "dashboard" && <Dashboard data={data} />}
+      {active === "trang-chu" && <TrangChuManager data={data} updateSiteData={updateSiteData} />}
+      {active === "header" && <HeaderSettingsManager data={data} updateSiteData={updateSiteData} />}
+      {active === "menu" && <MenuManager data={data} updateSiteData={updateSiteData} />}
+      {active === "footer" && <FooterSettingsManager data={data} updateSiteData={updateSiteData} />}
+      {active === "gioi-thieu" && <GioiThieuManager data={data} updateSiteData={updateSiteData} />}
+      {active === "hoat-dong" && <HoatDongManager data={data} createItem={createItem} updateItem={updateItem} deleteItem={deleteItem} />}
+      {active === "guong-bac" && <GuongBacManager data={data} createItem={createItem} updateItem={updateItem} deleteItem={deleteItem} />}
+      {active === "thu-vien" && <ThuVienManager data={data} createItem={createItem} updateItem={updateItem} deleteItem={deleteItem} />}
+      {active === "binh-dan" && (
+        <SidebarManager
+          data={data}
+          createItem={createItem}
+          updateItem={updateItem}
+          deleteItem={deleteItem}
+          updateSiteData={updateSiteData}
+        />
+      )}
+    </AdminLayout>
   );
 };
 

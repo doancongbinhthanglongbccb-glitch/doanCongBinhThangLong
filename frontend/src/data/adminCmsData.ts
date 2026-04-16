@@ -20,7 +20,7 @@ export type AdminSectionConfig = {
 export const adminSidebarItems: AdminSectionConfig[] = [
   {
     key: "dashboard",
-    label: "Dashboard",
+    label: "Bảng điều khiển",
     description: "Tổng quan nhanh các nội dung đang quản lý.",
     addLabel: "Thêm bản ghi",
   },

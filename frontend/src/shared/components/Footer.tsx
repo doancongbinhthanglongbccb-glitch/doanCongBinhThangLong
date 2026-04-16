@@ -17,7 +17,7 @@ const Footer = ({
     { label: "Tin tức", href: "/hoat-dong-don-vi/huan-luyen" },
     { label: "Thư viện", href: "/thu-vien/tu-lieu-truyen-thong-giao-duc" },
   ],
-  contactLines = ["Đoàn công binh Thăng Long", "Quân khu / Bộ Quốc phòng", "Email: info@luduancongbinh293.vn"],
+  contactLines = ["Đoàn công binh Thăng Long", "Quân khu / Bộ Quốc phòng", "Email: doancongbinhthanglong.bccb@gmail.com"],
   copyright = "© 2026 Đoàn công binh Thăng Long - Quân đội nhân dân Việt Nam. Bản quyền thuộc về Đoàn công binh Thăng Long.",
 }: FooterProps) => {
   return (

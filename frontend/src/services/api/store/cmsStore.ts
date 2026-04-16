@@ -1,5 +1,7 @@
 import heroBanner from "@/assets/banner-293.jpg";
 import logoImg from "@/assets/logo-293.png";
+import sidebarTopImage from "@/assets/banner-4888.png";
+import sidebarBottomImage from "@/assets/bannercdvcbqp2-9875.jpg";
 import news1 from "@/assets/light-blue-illustration-marketing-infographic-5791.jpg";
 import news2 from "@/assets/news-2.svg";
 import news3 from "@/assets/news-3.svg";
@@ -29,30 +31,51 @@ const createInitialData = (): CmsData => ({
     subtitle: "Chủ động -  Sáng tạo - Tự lực - Tự cường - Trưởng thành - Vững mạnh",
   },
   navItems: [
-    { label: "Trang chủ", href: "/", active: true },
-    { label: "Giới thiệu", href: "/gioi-thieu" },
+    { id: "nav-home", label: "Trang chủ", href: "/", active: true, visible: true },
+    { id: "nav-about", label: "Giới thiệu", href: "/gioi-thieu", visible: true },
     {
+      id: "nav-activities",
       label: "Hoạt động đơn vị",
+      visible: true,
       children: [
-        { label: "Huấn luyện", href: "/hoat-dong-don-vi/huan-luyen" },
-        { label: "Cứu hộ", href: "/hoat-dong-don-vi/cuu-ho" },
-        { label: "Dân vận", href: "/hoat-dong-don-vi/dan-van" },
-        { label: "Bình dân học vụ số", href: "/binh-dan-hoc-vu-so" },
+        { id: "nav-activities-training", label: "Huấn luyện", href: "/hoat-dong-don-vi/huan-luyen", visible: true },
+        { id: "nav-activities-rescue", label: "Cứu hộ", href: "/hoat-dong-don-vi/cuu-ho", visible: true },
+        { id: "nav-activities-civil", label: "Dân vận", href: "/hoat-dong-don-vi/dan-van", visible: true },
+        { id: "nav-activities-digital", label: "Bình dân học vụ số", href: "/binh-dan-hoc-vu-so", visible: true },
       ],
     },
     {
+      id: "nav-follow-uncle-ho",
       label: "Theo gương Bác",
+      visible: true,
       children: [
-        { label: "Mỗi ngày một lời Bác Hồ dạy", href: "/theo-guong-bac/moi-ngay-mot-loi-bac-ho-day" },
-        { label: "Mỗi tuần một điều luật", href: "/theo-guong-bac/moi-tuan-mot-dieu-luat" },
+        {
+          id: "nav-follow-uncle-ho-daily",
+          label: "Mỗi ngày một lời Bác Hồ dạy",
+          href: "/theo-guong-bac/moi-ngay-mot-loi-bac-ho-day",
+          visible: true,
+        },
+        {
+          id: "nav-follow-uncle-ho-weekly-law",
+          label: "Mỗi tuần một điều luật",
+          href: "/theo-guong-bac/moi-tuan-mot-dieu-luat",
+          visible: true,
+        },
       ],
     },
     {
+      id: "nav-library",
       label: "Thư viện",
+      visible: true,
       children: [
-        { label: "Tư liệu truyền thống - giáo dục", href: "/thu-vien/tu-lieu-truyen-thong-giao-duc" },
-        { label: "Hiện vật truyền thống", href: "/thu-vien/hien-vat-truyen-thong" },
-        { label: "Video", href: "/thu-vien/video" },
+        {
+          id: "nav-library-docs",
+          label: "Tư liệu truyền thống - giáo dục",
+          href: "/thu-vien/tu-lieu-truyen-thong-giao-duc",
+          visible: true,
+        },
+        { id: "nav-library-artifacts", label: "Hiện vật truyền thống", href: "/thu-vien/hien-vat-truyen-thong", visible: true },
+        { id: "nav-library-video", label: "Video", href: "/thu-vien/video", visible: true },
       ],
     },
   ],
@@ -150,6 +173,22 @@ const createInitialData = (): CmsData => ({
       image: news3,
     },
   ],
+  sidebarImages: {
+    topImage: sidebarTopImage,
+    bottomImage: sidebarBottomImage,
+  },
+  footer: {
+    title: "ĐOÀN CÔNG BINH THĂNG LONG",
+    descriptionLines: ["Phát huy truyền thống ''MỞ ĐƯỜNG THẮNG LỢI''"],
+    quickLinks: [
+      { label: "Trang chủ", href: "/" },
+      { label: "Giới thiệu", href: "/gioi-thieu" },
+      { label: "Tin tức", href: "/hoat-dong-don-vi/huan-luyen" },
+      { label: "Thư viện", href: "/thu-vien/tu-lieu-truyen-thong-giao-duc" },
+    ],
+    contactLines: ["Đoàn công binh Thăng Long", "Quân khu / Bộ Quốc phòng", "Email: doancongbinhthanglong.bccb@gmail.com"],
+    copyright: "© 2026 Đoàn công binh Thăng Long - Quân đội nhân dân Việt Nam. Bản quyền thuộc về Đoàn công binh Thăng Long.",
+  },
   chatbot: {
     title: "Trợ lý Lữ đoàn 293",
     subtitle: "Binh chủng công binh",
@@ -165,10 +204,46 @@ const createInitialData = (): CmsData => ({
       "cứu hộ": "Lữ đoàn duy trì lực lượng ứng trực cứu hộ cứu nạn, phối hợp địa phương xử lý thiên tai và sự cố.",
       "dân vận": "Cán bộ, chiến sĩ tham gia công tác dân vận, hỗ trợ địa phương và xây dựng nông thôn mới.",
       "thư viện": "Mục Thư viện cung cấp tư liệu truyền thống, hiện vật và video để phục vụ học tập, tuyên truyền.",
-      "liên hệ": "Bạn có thể liên hệ qua email: info@luduancongbinh293.vn.",
+      "liên hệ": "Bạn có thể liên hệ qua email: doancongbinhthanglong.bccb@gmail.com.",
     },
   },
 });
+
+const normalizeCmsData = (value: CmsData): CmsData => {
+  const normalized = clone(value);
+
+  normalized.navItems = (normalized.navItems || []).map((item, itemIndex) => ({
+    ...item,
+    id: item.id || `nav-item-${itemIndex + 1}`,
+    visible: item.visible ?? true,
+    children: (item.children || []).map((child, childIndex) => ({
+      ...child,
+      id: child.id || `${item.id || `nav-item-${itemIndex + 1}`}-child-${childIndex + 1}`,
+      visible: child.visible ?? true,
+    })),
+  }));
+
+  if (!normalized.sidebarImages?.topImage || !normalized.sidebarImages?.bottomImage) {
+    normalized.sidebarImages = {
+      topImage: normalized.sidebarImages?.topImage || sidebarTopImage,
+      bottomImage: normalized.sidebarImages?.bottomImage || sidebarBottomImage,
+    };
+  }
+
+  if (!normalized.footer) {
+    normalized.footer = createInitialData().footer;
+  }
+
+  const contactText = normalized.chatbot?.knowledgeBase?.["liên hệ"];
+  if (typeof contactText === "string" && contactText.includes("info@luduancongbinh293.vn")) {
+    normalized.chatbot.knowledgeBase["liên hệ"] = contactText.replace(
+      "info@luduancongbinh293.vn",
+      "doancongbinhthanglong.bccb@gmail.com",
+    );
+  }
+
+  return normalized;
+};
 
 let cache: CmsData | null = null;
 
@@ -184,15 +259,17 @@ export const readCmsStore = (): CmsData => {
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as CmsData;
-        cache = parsed;
-        return clone(parsed);
+        const normalized = normalizeCmsData(parsed);
+        cache = normalized;
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+        return clone(normalized);
       } catch {
         window.localStorage.removeItem(STORAGE_KEY);
       }
     }
   }
 
-  const seed = createInitialData();
+  const seed = normalizeCmsData(createInitialData());
   cache = seed;
   if (canUseStorage()) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));

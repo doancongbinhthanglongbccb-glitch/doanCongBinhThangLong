@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import NavBar from "@/shared/components/NavBar";
 import sidebarTopImage from "@/assets/banner-4888.png";
 import sidebarBottomImage from "@/assets/bannercdvcbqp2-9875.jpg";
 import BinhDanHocVuSidebar from "@/shared/components/BinhDanHocVuSidebar";
-import Footer from "@/shared/components/Footer";
-import Chatbot from "@/shared/components/Chatbot";
-import chatbotIcon from "@/assets/chatbot.png";
+import PublicLayout from "@/shared/layouts/PublicLayout";
+import SectionTitle from "@/shared/components/system/SectionTitle";
 import MarkdownContent from "@/shared/components/MarkdownContent";
 import { getCmsData } from "@/services/api/cmsApi";
 import { getPosts } from "@/services/api/postApi";
@@ -64,6 +62,7 @@ const pageConfig = {
 };
 
 const SectionPage = () => {
+  const pageContainerClass = "w-full max-w-[1500px] mx-auto px-1 sm:px-2";
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -132,35 +131,15 @@ const SectionPage = () => {
 
   if (!finalConfig) {
     return (
-      <div className="min-h-screen bg-slate-100 text-slate-900">
-        <div className="sticky top-0 z-50">
-          <div className="bg-topbar text-white">
-            <div className="w-full max-w-[1600px] mx-auto px-3 py-2 text-sm">
-              <span className="font-semibold capitalize">{topBarDate}</span>
-            </div>
-          </div>
-          <header className="bg-white border-b border-slate-200">
-            <div className="w-full max-w-[1600px] mx-auto px-3 py-3 flex items-center gap-4">
-              <img src={data.header.logo} alt="logo" className="w-16 h-16 object-contain" />
-              <div>
-                <h1 className="text-4xl font-bold text-primary">{data.header.title}</h1>
-                {data.header.departmentName && (
-                  <p className="text-sm text-gray-600 font-semibold uppercase mb-1">{data.header.departmentName}</p>
-                )}
-                <p className="text-gold text-lg font-semibold uppercase">{data.header.subtitle}</p>
-              </div>
-            </div>
-          </header>
-          <NavBar navItems={data.navItems ?? []} />
-        </div>
-        <main className="w-full max-w-[1600px] mx-auto px-3 py-8">
-          <div className="border border-slate-200 bg-white p-8">
+      <PublicLayout data={data} topBarDate={topBarDate}>
+        <div className={`${pageContainerClass} pb-6`}>
+          <div className="border border-slate-200 bg-white p-5 md:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
             <h2 className="text-3xl font-bold text-primary">Không tìm thấy trang</h2>
             <p className="mt-3 text-slate-700">Nội dung bạn chọn chưa được cấu hình.</p>
             <Link to="/" className="mt-4 inline-block text-primary underline">Quay về Trang chủ</Link>
           </div>
-        </main>
-      </div>
+        </div>
+      </PublicLayout>
     );
   }
 
@@ -173,77 +152,50 @@ const SectionPage = () => {
   const filteredThuVien = finalConfig.thuVienType ? data.thuVien.filter((item) => item.type === finalConfig.thuVienType) : [];
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
-      <div className="sticky top-0 z-50">
-        <div className="bg-topbar text-white">
-          <div className="w-full max-w-[1600px] mx-auto px-3 py-2 text-sm">
-            <span className="font-semibold capitalize">{topBarDate}</span>
-          </div>
-        </div>
-
-        <header className="bg-white border-b border-slate-200">
-          <div className="w-full max-w-[1600px] mx-auto px-3 py-3 flex items-center gap-4">
-            <img src={data.header.logo} alt="logo" className="w-16 h-16 object-contain" />
+    <PublicLayout data={data} topBarDate={topBarDate}>
+      <div className={`${pageContainerClass} pb-6`}>
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] gap-6 items-start">
             <div>
-              <h1 className="text-4xl font-bold text-primary uppercase">{data.header.title}</h1>
-              <p className="text-gold text-lg font-semibold uppercase">{data.header.subtitle}</p>
-            </div>
-          </div>
-        </header>
+              <section className="border border-slate-200 bg-white p-4 md:p-5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+                <SectionTitle title={title} />
 
-        <NavBar navItems={data.navItems ?? []} />
-      </div>
-
-      <section className="bg-white">
-        <div className="w-full max-w-[1600px] mx-auto px-3 py-3">
-          <img src={data.hero.image} alt="hero" className="w-full h-44 md:h-56 lg:h-64 object-contain" />
-        </div>
-      </section>
-
-      <main>
-        <div className="w-full max-w-[1600px] mx-auto px-3 py-5">
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_460px] gap-4 items-start">
-            <div>
-              <section className="border border-slate-200 bg-white p-6">
-                <h3 className="text-3xl font-bold text-primary">{title}</h3>
-
-                {introContent && <MarkdownContent value={introContent} className="prose prose-slate mt-3 max-w-none text-slate-700" />}
+                {introContent && <MarkdownContent value={introContent} className="prose prose-slate mt-3 max-w-none text-slate-700 leading-relaxed" />}
 
                 {filteredActivities.length > 0 && (
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-5 space-y-4">
                     {filteredActivities.map((item) => (
-                      <article key={item.id} className="border border-slate-200 p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <h4 className="text-xl font-semibold">{item.title}</h4>
-                          <span className="text-sm text-slate-500">{item.date}</span>
+                      <article key={item.id} className="border border-slate-200 bg-white p-4 md:p-5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+                        <div className="flex flex-wrap items-center justify-between gap-2.5">
+                          <h4 className="text-xl leading-[1.4] font-bold text-slate-900">{item.title}</h4>
+                          <span className="text-xs font-medium tracking-wide text-slate-500">{item.date}</span>
                         </div>
-                        <MarkdownContent value={item.content} className="prose prose-slate mt-2 max-w-none text-slate-700" />
+                        <MarkdownContent value={item.content} className="prose prose-slate mt-3 max-w-none text-slate-700 leading-relaxed" />
                       </article>
                     ))}
                   </div>
                 )}
 
                 {filteredGuongBac.length > 0 && (
-                  <div className="mt-4 grid gap-3">
+                  <div className="mt-5 grid gap-4">
                     {filteredGuongBac.map((item) => (
-                      <article key={item.id} className="border border-slate-200 p-4">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">{item.type}</p>
-                        <h4 className="mt-1 text-xl font-semibold">{item.title}</h4>
-                        <MarkdownContent value={item.content} className="prose prose-slate mt-2 max-w-none text-slate-700" />
+                      <article key={item.id} className="border border-slate-200 bg-white p-4 md:p-5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{item.type}</p>
+                        <h4 className="mt-1.5 text-xl leading-[1.4] font-bold text-slate-900">{item.title}</h4>
+                        <MarkdownContent value={item.content} className="prose prose-slate mt-3 max-w-none text-slate-700 leading-relaxed" />
                       </article>
                     ))}
                   </div>
                 )}
 
                 {filteredThuVien.length > 0 && (
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-5 space-y-4">
                     {filteredThuVien.map((item) => (
-                      <article key={item.id} className="border border-slate-200 p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <h4 className="text-xl font-semibold">{item.title}</h4>
-                          <span className="text-sm text-slate-500">{item.type}</span>
+                      <article key={item.id} className="border border-slate-200 bg-white p-4 md:p-5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+                        <div className="flex flex-wrap items-center justify-between gap-2.5">
+                          <h4 className="text-xl leading-[1.4] font-bold text-slate-900">{item.title}</h4>
+                          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{item.type}</span>
                         </div>
-                        <a href={item.url} target="_blank" rel="noreferrer" className="mt-2 block text-blue-700 underline break-all">
+                        <a href={item.url} target="_blank" rel="noreferrer" className="mt-3 block text-sm text-blue-700 underline break-all">
                           {item.url}
                         </a>
                       </article>
@@ -252,14 +204,14 @@ const SectionPage = () => {
                 )}
 
                 {finalConfig.isBinhDanHocVuDetail && selectedBinhDanPost && (
-                  <article className="mt-4 overflow-hidden border border-slate-200 bg-white">
+                  <article className="mt-5 overflow-hidden border border-slate-200 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
                     <img
-                      src={selectedBinhDanPost.image || sidebarTopImage}
+                      src={selectedBinhDanPost.image || data.sidebarImages?.topImage || sidebarTopImage}
                       alt={selectedBinhDanPost.title}
                       className="h-80 w-full object-cover"
                     />
-                    <div className="p-5">
-                      <h4 className="text-2xl font-bold text-slate-900">{selectedBinhDanPost.title}</h4>
+                    <div className="p-4 md:p-5">
+                      <h4 className="text-2xl leading-[1.4] font-bold text-slate-900">{selectedBinhDanPost.title}</h4>
                       <MarkdownContent
                         value={selectedBinhDanPost.summary || "Noi dung chi tiet dang duoc cap nhat."}
                         className="prose prose-slate mt-3 max-w-none text-base leading-relaxed text-slate-700"
@@ -271,19 +223,16 @@ const SectionPage = () => {
               </section>
             </div>
 
-            <BinhDanHocVuSidebar
-              items={data.binhDanHocVu ?? []}
-              topImage={sidebarTopImage}
-              bottomImage={sidebarBottomImage}
-              stickyClassName="sticky top-24 self-start"
-            />
+            <div className="h-fit border border-slate-200 bg-white p-3 shadow-sm md:sticky md:top-4">
+              <BinhDanHocVuSidebar
+                items={data.binhDanHocVu ?? []}
+                topImage={data.sidebarImages?.topImage || sidebarTopImage}
+                bottomImage={data.sidebarImages?.bottomImage || sidebarBottomImage}
+              />
+            </div>
           </div>
         </div>
-      </main>
-
-      <Footer logo={data.header.logo} />
-      {data.chatbot && <Chatbot chatbotContent={data.chatbot} emblem={chatbotIcon} />}
-    </div>
+    </PublicLayout>
   );
 };
 

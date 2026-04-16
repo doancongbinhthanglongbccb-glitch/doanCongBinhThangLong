@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PenLine, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,10 +15,21 @@ const blankForm = {
   link: "",
 };
 
-const SidebarManager = ({ data, createItem, updateItem, deleteItem }) => {
+const SidebarManager = ({ data, createItem, updateItem, deleteItem, updateSiteData }) => {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(blankForm);
+  const [coverForm, setCoverForm] = useState({
+    topImage: data.sidebarImages?.topImage || "",
+    bottomImage: data.sidebarImages?.bottomImage || "",
+  });
+
+  useEffect(() => {
+    setCoverForm({
+      topImage: data.sidebarImages?.topImage || "",
+      bottomImage: data.sidebarImages?.bottomImage || "",
+    });
+  }, [data.sidebarImages?.topImage, data.sidebarImages?.bottomImage]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -60,12 +71,33 @@ const SidebarManager = ({ data, createItem, updateItem, deleteItem }) => {
     reader.readAsDataURL(file);
   };
 
+  const handleCoverUpload = (field) => (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCoverForm((prev) => ({ ...prev, [field]: String(reader.result || "") }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const saveCoverImages = async () => {
+    await updateSiteData((prev) => ({
+      ...prev,
+      sidebarImages: {
+        topImage: coverForm.topImage,
+        bottomImage: coverForm.bottomImage,
+      },
+    }));
+  };
+
   return (
     <Card className="rounded-none">
       <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <CardTitle>Bình dân học vụ số</CardTitle>
-          <CardDescription>Quản lý danh sách liên kết của Sidebar.</CardDescription>
+          <CardDescription>Quản lý ảnh top/bottom và danh sách liên kết của Sidebar.</CardDescription>
         </div>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" />
@@ -73,6 +105,26 @@ const SidebarManager = ({ data, createItem, updateItem, deleteItem }) => {
         </Button>
       </CardHeader>
       <CardContent>
+        <div className="mb-6 border border-slate-200 bg-white p-4">
+          <h4 className="text-base font-semibold text-slate-900">Ảnh cố định của sidebar</h4>
+          <p className="mt-1 text-sm text-slate-500">Cập nhật hai ảnh hiển thị phía trên và phía dưới khối Bình dân học vụ số.</p>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Ảnh phía trên</label>
+              <Input type="file" accept="image/*" onChange={handleCoverUpload("topImage")} />
+              {coverForm.topImage ? <img src={coverForm.topImage} alt="Top cover" className="h-24 w-full border border-slate-200 object-cover" /> : null}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Ảnh phía dưới</label>
+              <Input type="file" accept="image/*" onChange={handleCoverUpload("bottomImage")} />
+              {coverForm.bottomImage ? <img src={coverForm.bottomImage} alt="Bottom cover" className="h-24 w-full border border-slate-200 object-cover" /> : null}
+            </div>
+          </div>
+          <div className="mt-4">
+            <Button type="button" onClick={saveCoverImages}>Lưu ảnh sidebar</Button>
+          </div>
+        </div>
+
         <div className="overflow-hidden border border-slate-200 bg-white">
           <Table>
             <TableHeader>

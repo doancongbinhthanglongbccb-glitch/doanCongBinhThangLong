@@ -2,14 +2,18 @@ import type { MediaItem } from "@/shared/types/media";
 import type { Post } from "@/shared/types/post";
 
 export type NavChildItem = {
+  id?: string;
   label: string;
   href: string;
+  visible?: boolean;
 };
 
 export type NavItem = {
+  id?: string;
   label: string;
   href?: string;
   active?: boolean;
+  visible?: boolean;
   children?: NavChildItem[];
 };
 
@@ -57,6 +61,19 @@ export type BinhDanHocVuItem = {
   image?: string;
 };
 
+export type SidebarImages = {
+  topImage: string;
+  bottomImage: string;
+};
+
+export type FooterContent = {
+  title: string;
+  descriptionLines: string[];
+  quickLinks: Array<{ label: string; href: string }>;
+  contactLines: string[];
+  copyright: string;
+};
+
 export type ChatbotContent = {
   title: string;
   subtitle: string;
@@ -76,6 +93,8 @@ export type CmsData = {
   guongBac: GuongBacItem[];
   thuVien: ThuVienItem[];
   binhDanHocVu: BinhDanHocVuItem[];
+  sidebarImages: SidebarImages;
+  footer: FooterContent;
   chatbot: ChatbotContent;
 };
 

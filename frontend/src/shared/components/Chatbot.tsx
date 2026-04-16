@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Mic, MicOff, Volume2, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { SiteContent } from "@/types/site";
+import ChatPrompt from "@/components/ChatPrompt";
 
 interface Message {
   id: string;
@@ -159,6 +160,8 @@ const Chatbot = ({
 
   return (
     <>
+      <ChatPrompt />
+
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-6 right-6 z-50 flex h-20 w-20 items-center justify-center rounded-full bg-transparent text-white shadow-none transition-all hover:scale-[1.03]"
