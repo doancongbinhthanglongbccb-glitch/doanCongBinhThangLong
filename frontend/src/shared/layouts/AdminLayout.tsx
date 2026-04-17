@@ -1,8 +1,11 @@
 import type { ElementType, ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronRight, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SidebarSection from "@/shared/components/admin/SidebarSection";
+import { logout } from "@/services/auth";
+import { cn } from "@/lib/utils";
+import { UI_TEXT } from "@/constants/uiText";
 
 type AdminMenuItem = {
   key: string;
@@ -19,40 +22,86 @@ type AdminLayoutProps = {
   menuSections: AdminMenuSection[];
   active: string;
   onChange: (key: string) => void;
+  pageTitle: string;
+  breadcrumb?: string[];
+  userName?: string;
+  role?: string;
   children: ReactNode;
 };
 
-const AdminLayout = ({ menuSections, active, onChange, children }: AdminLayoutProps) => {
+const AdminLayout = ({ menuSections, active, onChange, pageTitle, breadcrumb = [], userName, role, children }: AdminLayoutProps) => {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f3f4f6_100%)] text-slate-900">
       <div className="flex min-h-screen flex-col lg:flex-row">
-        <aside className="w-full border-b border-slate-200 bg-white lg:w-72 lg:border-b-0 lg:border-r">
-          <div className="border-b border-slate-200 px-6 py-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Quản trị viên</p>
-            <h1 className="mt-2 text-2xl font-bold">Quản trị website</h1>
-            <p className="mt-2 text-sm text-slate-500">Quản lý nội dung theo đúng cấu trúc website.</p>
+        <aside className="flex w-full flex-col border-b border-slate-200 bg-white shadow-sm lg:sticky lg:top-0 lg:h-screen lg:w-[240px] lg:border-b-0 lg:border-r">
+          <div className="border-b border-slate-200 px-5 py-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-700">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{UI_TEXT.vi.admin.layout.appLabel}</p>
+                <h1 className="text-base font-semibold leading-5 text-slate-900">{UI_TEXT.vi.admin.layout.appTitle}</h1>
+              </div>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-500">{UI_TEXT.vi.admin.layout.appDescription}</p>
           </div>
-          <nav className="p-4 lg:pb-6">
+
+          <nav className="flex-1 space-y-3 px-3 py-4">
             {menuSections.map((section) => (
-              <SidebarSection key={section.label} label={section.label} items={section.items} active={active} onChange={onChange} />
+              <SidebarSection
+                key={section.label}
+                label={section.label}
+                items={section.items}
+                active={active}
+                onChange={onChange}
+                collapsible
+              />
             ))}
           </nav>
-          <div className="border-t border-slate-200 p-4">
-            <Button asChild variant="outline" className="w-full justify-start">
+
+          <div className="mt-auto border-t border-slate-200 p-3">
+            <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm">
+              <p className="font-medium text-slate-900">{userName || UI_TEXT.vi.admin.layout.userFallback}</p>
+              <p className="mt-1 text-slate-500">{role || UI_TEXT.vi.admin.layout.roleFallback}</p>
+            </div>
+            <Button variant="destructive" className="mb-2 w-full justify-start rounded-lg" onClick={() => logout()}>
+              <LogOut className="mr-2 h-4 w-4" />
+              {UI_TEXT.vi.admin.layout.logout}
+            </Button>
+            <Button asChild variant="outline" className="w-full justify-start rounded-lg">
               <Link to="/">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Về website
+                {UI_TEXT.vi.admin.layout.backToSite}
               </Link>
             </Button>
           </div>
         </aside>
 
         <div className="flex-1">
-          <header className="border-b border-slate-200 bg-white px-4 py-4 lg:px-8">
-            <h2 className="text-2xl font-bold">Bảng điều khiển quản trị viên</h2>
+          <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur-sm lg:px-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                  <span>{UI_TEXT.vi.admin.layout.breadcrumbRoot}</span>
+                  {breadcrumb.map((item) => (
+                    <span key={item} className="inline-flex items-center gap-2 normal-case tracking-normal text-slate-400">
+                      <ChevronRight className="h-3.5 w-3.5" />
+                      {item}
+                    </span>
+                  ))}
+                </div>
+                <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{pageTitle}</h2>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                <span className="font-medium text-slate-900">{userName || UI_TEXT.vi.admin.layout.userFallback}</span>
+                <span className="mx-2 text-slate-300">•</span>
+                <span>{role || UI_TEXT.vi.admin.layout.roleFallback}</span>
+              </div>
+            </div>
           </header>
 
-          <main className="space-y-6 px-4 py-6 lg:px-8">{children}</main>
+          <main className={cn("space-y-6 px-4 py-6 lg:px-8")}>{children}</main>
         </div>
       </div>
     </div>

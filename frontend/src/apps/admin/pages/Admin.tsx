@@ -1,73 +1,94 @@
-import { useCallback, useEffect, useState, type ElementType } from "react";
-import { BookOpen, Home, LayoutDashboard, LibraryBig, MenuSquare, Settings, Shield, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type ElementType } from "react";
+import { FileText, LayoutDashboard, Settings } from "lucide-react";
 import AdminLayout from "@/shared/layouts/AdminLayout";
-import Dashboard from "./Dashboard";
-import TrangChuManager from "./TrangChuManager";
-import GioiThieuManager from "./GioiThieuManager";
-import HoatDongManager from "./HoatDongManager";
-import GuongBacManager from "./GuongBacManager";
-import ThuVienManager from "./ThuVienManager";
-import SidebarManager from "./SidebarManager";
-import HeaderSettingsManager from "./HeaderSettingsManager";
-import MenuManager from "./MenuManager";
-import FooterSettingsManager from "./FooterSettingsManager";
-import { createCollectionItem, deleteCollectionItem, getCmsData, updateCmsData, updateCollectionItem } from "@/services/api/cmsApi";
-import { createPost, deletePost, updatePost } from "@/services/api/postApi";
-import type { CmsCollectionKey, CmsData } from "@/shared/types/cms";
-import type { CreatePostInput, UpdatePostInput } from "@/shared/types/post";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { getCmsData, updateCmsData } from "@/services/api/cmsApi";
+import { getCmsPosts } from "@/services/api/postApi";
+import { getAuthUser, getUserRole, hasRoleAccess } from "@/services/auth";
+import type { CmsData } from "@/shared/types/cms";
+import type { Post } from "@/shared/types/post";
+import { UI_TEXT } from "@/constants/uiText";
 
 type AdminKey =
   | "dashboard"
-  | "trang-chu"
-  | "header"
-  | "menu"
-  | "footer"
-  | "gioi-thieu"
-  | "hoat-dong"
-  | "guong-bac"
-  | "thu-vien"
-  | "binh-dan";
+  | "posts"
+  | "config";
 
 type AdminMenuItem = { key: AdminKey; label: string; icon: ElementType };
 type AdminMenuSection = { label: string; items: AdminMenuItem[] };
 
 const menuSections: AdminMenuSection[] = [
   {
-    label: "NỘI DUNG",
+    label: UI_TEXT.vi.admin.sections.content,
     items: [
-      { key: "dashboard", label: "Bảng điều khiển", icon: LayoutDashboard },
-      { key: "trang-chu", label: "Trang chủ", icon: Home },
-      { key: "gioi-thieu", label: "Giới thiệu", icon: BookOpen },
-      { key: "hoat-dong", label: "Hoạt động đơn vị", icon: Shield },
-      { key: "guong-bac", label: "Theo gương Bác", icon: Sparkles },
-      { key: "thu-vien", label: "Thư viện", icon: LibraryBig },
-      { key: "binh-dan", label: "Bình dân học vụ số", icon: Sparkles },
+      { key: "dashboard", label: UI_TEXT.vi.admin.menu.dashboard, icon: LayoutDashboard },
+      { key: "posts", label: UI_TEXT.vi.admin.menu.postManager, icon: FileText },
     ],
   },
   {
-    label: "CẤU HÌNH",
+    label: UI_TEXT.vi.admin.sections.system,
     items: [
-      { key: "header", label: "Cấu hình Header", icon: Settings },
-      { key: "menu", label: "Quản lý Menu", icon: MenuSquare },
-      { key: "footer", label: "Cấu hình Footer", icon: LibraryBig },
+      { key: "config", label: UI_TEXT.vi.admin.menu.configManager, icon: Settings },
     ],
   },
 ];
 
+const pageMeta: Record<AdminKey, { title: string; breadcrumb: string[] }> = {
+  dashboard: { title: UI_TEXT.vi.admin.menu.dashboard, breadcrumb: [UI_TEXT.vi.admin.menu.dashboard] },
+  posts: { title: UI_TEXT.vi.admin.menu.postManager, breadcrumb: [UI_TEXT.vi.admin.sections.content, UI_TEXT.vi.admin.menu.postManager] },
+  config: { title: UI_TEXT.vi.admin.menu.configManager, breadcrumb: [UI_TEXT.vi.admin.sections.system, UI_TEXT.vi.admin.menu.configManager] },
+};
+
 const Admin = () => {
   const [data, setData] = useState<CmsData | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [active, setActive] = useState<AdminKey>("dashboard");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const role = getUserRole();
+  const userId = getAuthUser()?.id || "";
+  const canEditContent = hasRoleAccess("editor");
+  const canManageConfig = hasRoleAccess("admin");
+
+  const visibleMenuSections = useMemo(
+    () =>
+      menuSections
+    .map((section) => {
+      if (section.label === UI_TEXT.vi.admin.sections.system) {
+        return {
+          ...section,
+          items: canManageConfig ? section.items : [],
+        };
+      }
+
+      return {
+        ...section,
+        items: canEditContent ? section.items : section.items.filter((item) => item.key === "dashboard"),
+      };
+    })
+    .filter((section) => section.items.length > 0),
+    [canEditContent, canManageConfig],
+  );
+
+  const active: AdminKey =
+    location.pathname.includes("/admin/posts")
+      ? "posts"
+      : location.pathname.includes("/admin/config")
+      ? "config"
+      : "dashboard";
+  const page = pageMeta[active];
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const snapshot = await getCmsData();
-      setData(snapshot);
+      const [snapshot, cmsPosts] = await Promise.all([getCmsData(), getCmsPosts()]);
+      setData({ ...snapshot, activities: cmsPosts });
+      setPosts(cmsPosts);
       setError("");
     } catch {
-      setError("Không thể tải dữ liệu quản trị viên.");
+      setError(UI_TEXT.vi.admin.common.adminDataLoadError);
     } finally {
       setLoading(false);
     }
@@ -78,61 +99,16 @@ const Admin = () => {
   }, [loadData]);
 
   const updateSiteData = async (updater: CmsData | ((previous: CmsData) => CmsData)) => {
+    if (!canManageConfig) {
+      throw new Error("Insufficient role: admin required");
+    }
+
     await updateCmsData(updater);
     await loadData();
   };
 
-  const createItem = async (collection: CmsCollectionKey, payload: Record<string, unknown>) => {
-    switch (collection) {
-      case "activities":
-        await createPost(payload as CreatePostInput);
-        break;
-      case "guongBac":
-        await createCollectionItem("guongBac", payload as Omit<CmsData["guongBac"][number], "id">);
-        break;
-      case "thuVien":
-        await createCollectionItem("thuVien", payload as Omit<CmsData["thuVien"][number], "id">);
-        break;
-      case "binhDanHocVu":
-        await createCollectionItem("binhDanHocVu", payload as Omit<CmsData["binhDanHocVu"][number], "id">);
-        break;
-      default:
-        break;
-    }
-    await loadData();
-  };
-
-  const updateItem = async (collection: CmsCollectionKey, id: string, payload: Record<string, unknown>) => {
-    switch (collection) {
-      case "activities":
-        await updatePost(id, payload as UpdatePostInput);
-        break;
-      case "guongBac":
-        await updateCollectionItem("guongBac", id, payload as Partial<Omit<CmsData["guongBac"][number], "id">>);
-        break;
-      case "thuVien":
-        await updateCollectionItem("thuVien", id, payload as Partial<Omit<CmsData["thuVien"][number], "id">>);
-        break;
-      case "binhDanHocVu":
-        await updateCollectionItem("binhDanHocVu", id, payload as Partial<Omit<CmsData["binhDanHocVu"][number], "id">>);
-        break;
-      default:
-        break;
-    }
-    await loadData();
-  };
-
-  const deleteItem = async (collection: CmsCollectionKey, id: string) => {
-    if (collection === "activities") {
-      await deletePost(id);
-    } else {
-      await deleteCollectionItem(collection, id);
-    }
-    await loadData();
-  };
-
   if (loading || !data) {
-    return <div className="container py-10">Đang tải bảng quản trị viên...</div>;
+    return <div className="container py-10">{UI_TEXT.vi.admin.common.loadingAdminData}</div>;
   }
 
   if (error) {
@@ -140,25 +116,33 @@ const Admin = () => {
   }
 
   return (
-    <AdminLayout menuSections={menuSections} active={active} onChange={(key) => setActive(key as AdminKey)}>
-      {active === "dashboard" && <Dashboard data={data} />}
-      {active === "trang-chu" && <TrangChuManager data={data} updateSiteData={updateSiteData} />}
-      {active === "header" && <HeaderSettingsManager data={data} updateSiteData={updateSiteData} />}
-      {active === "menu" && <MenuManager data={data} updateSiteData={updateSiteData} />}
-      {active === "footer" && <FooterSettingsManager data={data} updateSiteData={updateSiteData} />}
-      {active === "gioi-thieu" && <GioiThieuManager data={data} updateSiteData={updateSiteData} />}
-      {active === "hoat-dong" && <HoatDongManager data={data} createItem={createItem} updateItem={updateItem} deleteItem={deleteItem} />}
-      {active === "guong-bac" && <GuongBacManager data={data} createItem={createItem} updateItem={updateItem} deleteItem={deleteItem} />}
-      {active === "thu-vien" && <ThuVienManager data={data} createItem={createItem} updateItem={updateItem} deleteItem={deleteItem} />}
-      {active === "binh-dan" && (
-        <SidebarManager
-          data={data}
-          createItem={createItem}
-          updateItem={updateItem}
-          deleteItem={deleteItem}
-          updateSiteData={updateSiteData}
-        />
+    <AdminLayout
+      menuSections={visibleMenuSections}
+      active={active}
+      onChange={(key) => navigate(`/admin/${key === "dashboard" ? "dashboard" : key}`)}
+      pageTitle={page.title}
+      breadcrumb={page.breadcrumb}
+      userName={getAuthUser()?.username || UI_TEXT.vi.admin.layout.userFallback}
+      role={role}
+    >
+      {!canEditContent && (
+        <div className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {UI_TEXT.vi.admin.common.unauthorizedViewOnly}: <strong>{role || UI_TEXT.vi.admin.layout.roleFallback}</strong>. {UI_TEXT.vi.admin.common.unauthorizedViewOnlySuffix}
+        </div>
       )}
+
+      <Outlet
+        context={{
+          data,
+          posts,
+          role,
+          userId,
+          canEditContent,
+          canManageConfig,
+          updateSiteData,
+          reload: loadData,
+        }}
+      />
     </AdminLayout>
   );
 };

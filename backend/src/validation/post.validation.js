@@ -1,0 +1,31 @@
+const { z } = require("zod");
+
+const titleSchema = z.string().trim().min(10, "Title must be at least 10 characters");
+const contentSchema = z.string().trim().min(50, "Content must be at least 50 characters");
+
+const createPostSchema = z
+  .object({
+    title: titleSchema,
+    content: contentSchema,
+    thumbnail: z.string().trim().max(2048, "Thumbnail is too long").optional(),
+    status: z.enum(["draft", "published"]).optional(),
+  })
+  .strict();
+
+const updatePostSchema = z
+  .object({
+    title: titleSchema.optional(),
+    content: contentSchema.optional(),
+    thumbnail: z.string().trim().max(2048, "Thumbnail is too long").optional(),
+    status: z.enum(["draft", "published"]).optional(),
+  })
+  .strict()
+  .refine((payload) => Object.keys(payload).length > 0, {
+    message: "At least one field is required for update",
+    path: ["body"],
+  });
+
+module.exports = {
+  createPostSchema,
+  updatePostSchema,
+};

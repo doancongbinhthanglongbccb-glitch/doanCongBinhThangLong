@@ -1,22 +1,25 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getPosts, POSTS_UPDATED_EVENT } from '../services/postService';
+import { getPosts } from '@/services/api/postApi';
 
 export const usePostsFeed = () => {
   const [posts, setPosts] = useState([]);
 
-  const reloadPosts = useCallback(() => {
-    setPosts(getPosts());
+  const reloadPosts = useCallback(async () => {
+    const nextPosts = await getPosts();
+    setPosts(nextPosts);
   }, []);
 
   useEffect(() => {
-    reloadPosts();
+    void reloadPosts();
 
-    window.addEventListener('storage', reloadPosts);
-    window.addEventListener(POSTS_UPDATED_EVENT, reloadPosts);
+    const handleStorage = () => {
+      void reloadPosts();
+    };
+
+    window.addEventListener('storage', handleStorage);
 
     return () => {
-      window.removeEventListener('storage', reloadPosts);
-      window.removeEventListener(POSTS_UPDATED_EVENT, reloadPosts);
+      window.removeEventListener('storage', handleStorage);
     };
   }, [reloadPosts]);
 

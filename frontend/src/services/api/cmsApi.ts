@@ -1,14 +1,57 @@
 import type { CmsCollectionKey, CmsData } from "@/shared/types/cms";
 import { clone, getCmsStore, updateCmsStore } from "./store/cmsStore";
+import axiosClient from "@/services/axiosClient";
+import { ApiEndpoints } from "./endpoints";
+
+type RemoteConfig = {
+  header?: CmsData["header"];
+  menu?: CmsData["navItems"];
+  footer?: CmsData["footer"];
+};
+
+const isNonEmptyObject = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length > 0;
+
+const isNonEmptyArray = <T,>(value: unknown): value is T[] => Array.isArray(value) && value.length > 0;
+
+const mergeRemoteConfig = (base: CmsData, remote?: RemoteConfig): CmsData => {
+  if (!remote) {
+    return base;
+  }
+
+  return {
+    ...base,
+    header: isNonEmptyObject(remote.header) ? { ...base.header, ...remote.header } : base.header,
+    navItems: isNonEmptyArray<CmsData["navItems"][number]>(remote.menu) ? remote.menu : base.navItems,
+    footer: isNonEmptyObject(remote.footer) ? { ...base.footer, ...remote.footer } : base.footer,
+  };
+};
 
 export const getCmsData = async (): Promise<CmsData> => {
-  return getCmsStore();
+  const localData = await getCmsStore();
+
+  try {
+    const { data } = await axiosClient.get<RemoteConfig>(ApiEndpoints.config);
+    const merged = mergeRemoteConfig(localData, data);
+    await updateCmsStore(merged);
+    return merged;
+  } catch {
+    return localData;
+  }
 };
 
 export const updateCmsData = async (
   updater: CmsData | ((previous: CmsData) => CmsData),
 ): Promise<CmsData> => {
-  return updateCmsStore(updater);
+  const next = await updateCmsStore(updater);
+
+  await axiosClient.put(ApiEndpoints.config, {
+    header: next.header,
+    menu: next.navItems,
+    footer: next.footer,
+  });
+
+  return next;
 };
 
 export const createCollectionItem = async <K extends CmsCollectionKey>(

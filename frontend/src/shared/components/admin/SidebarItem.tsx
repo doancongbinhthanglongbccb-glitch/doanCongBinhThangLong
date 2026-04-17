@@ -9,14 +9,15 @@ type SidebarItemProps = {
 
 const SidebarItem = ({ label, icon: Icon, isActive, onClick }: SidebarItemProps) => {
   const activeClass = isActive
-    ? "border-l-4 border-gold bg-slate-900 text-white"
-    : "border-l-4 border-transparent text-slate-700 hover:bg-slate-100";
+    ? "border-red-700 bg-red-50 text-red-800 shadow-sm"
+    : "border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900";
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-11 w-full items-center gap-2.5 px-4 py-3 text-left text-sm font-semibold transition-colors duration-200 ease-out ${activeClass}`}
+      aria-current={isActive ? "page" : undefined}
+      className={`flex min-h-11 w-full items-center gap-3 border-l-4 px-4 py-3 text-left text-sm font-medium transition-colors duration-200 ease-out ${activeClass}`}
     >
       <Icon className="h-4 w-4 shrink-0" />
       <span className="truncate">{label}</span>

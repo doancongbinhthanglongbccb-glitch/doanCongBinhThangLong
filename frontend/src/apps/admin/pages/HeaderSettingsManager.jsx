@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { UI_TEXT } from "@/constants/uiText";
 
 const HeaderSettingsManager = ({ data, updateSiteData }) => {
+  const text = UI_TEXT.vi.admin.headerSettings;
+  const commonText = UI_TEXT.vi.admin.common;
   const [form, setForm] = useState({
     logo: data.header.logo || "",
     title: data.header.title || "",
@@ -32,39 +36,44 @@ const HeaderSettingsManager = ({ data, updateSiteData }) => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    await updateSiteData((prev) => ({
-      ...prev,
-      header: {
-        ...prev.header,
-        logo: form.logo,
-        title: form.title,
-        subtitle: form.subtitle,
-      },
-    }));
+    try {
+      await updateSiteData((prev) => ({
+        ...prev,
+        header: {
+          ...prev.header,
+          logo: form.logo,
+          title: form.title,
+          subtitle: form.subtitle,
+        },
+      }));
+      toast.success(text.saveSuccess);
+    } catch {
+      toast.error(text.saveError);
+    }
   };
 
   return (
     <Card className="rounded-none">
       <CardHeader>
-        <CardTitle>Header Settings</CardTitle>
-        <CardDescription>Quản lý logo, tiêu đề và khẩu hiệu hiển thị ở đầu trang.</CardDescription>
+        <CardTitle>{text.title}</CardTitle>
+        <CardDescription>{text.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Logo</label>
+              <label className="text-sm font-medium">{text.fieldLogo}</label>
               <Input type="file" accept="image/*" onChange={handleImageUpload} />
-              {form.logo ? <img src={form.logo} alt="Header logo preview" className="h-20 w-20 border border-slate-200 object-contain" /> : null}
+              {form.logo ? <img src={form.logo} alt={text.logoPreviewAlt} className="h-20 w-20 border border-slate-200 object-contain" /> : null}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Tiêu đề</label>
+              <label className="text-sm font-medium">{text.fieldTitle}</label>
               <Input value={form.title} onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))} />
-              <label className="text-sm font-medium">Khẩu hiệu</label>
+              <label className="text-sm font-medium">{text.fieldSubtitle}</label>
               <Input value={form.subtitle} onChange={(event) => setForm((prev) => ({ ...prev, subtitle: event.target.value }))} />
             </div>
           </div>
-          <Button type="submit">Lưu Header</Button>
+          <Button type="submit">{text.save || commonText.save}</Button>
         </form>
       </CardContent>
     </Card>
