@@ -9,6 +9,12 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     allowedHosts: ["suds-dial-bruising.ngrok-free.dev", "localhost", "127.0.0.1"],
+    proxy: {
+      "/api": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+      },
+    },
     hmr: {
       overlay: false,
     },

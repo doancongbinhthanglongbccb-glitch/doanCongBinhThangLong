@@ -1,13 +1,34 @@
-export interface Post {
+export type PostStatus = "draft" | "published";
+
+export interface PostAuthor {
   id: string;
-  title: string;
-  content: string;
-  category: string;
-  date: string;
-  image?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  username: string;
+  role: "admin" | "editor";
 }
 
-export type CreatePostInput = Omit<Post, "id">;
-export type UpdatePostInput = Partial<Omit<Post, "id">>;
+export interface Post {
+  _id?: string;
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  thumbnail?: string;
+  status: PostStatus;
+  publishedAt?: string;
+  author?: PostAuthor;
+  createdAt?: string;
+  updatedAt?: string;
+
+  // Legacy fields kept optional for existing public rendering components.
+  category?: string;
+  date?: string;
+  image?: string;
+}
+
+export type CreatePostInput = Pick<Post, "title" | "content"> & {
+  slug?: string;
+  thumbnail?: string;
+  status?: PostStatus;
+};
+
+export type UpdatePostInput = Partial<Pick<Post, "title" | "slug" | "content" | "thumbnail" | "status">>;

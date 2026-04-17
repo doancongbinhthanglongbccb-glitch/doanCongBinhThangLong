@@ -146,7 +146,10 @@ const SectionPage = () => {
   const title = finalConfig.title;
   const introContent = finalConfig.contentKey === "intro" ? data.intro.content : finalConfig.content;
   const filteredActivities = finalConfig.activityCategory
-    ? data.activities.filter((item) => item.category === finalConfig.activityCategory)
+    ? (() => {
+        const byCategory = data.activities.filter((item) => item.category === finalConfig.activityCategory);
+        return byCategory.length > 0 ? byCategory : data.activities;
+      })()
     : [];
   const filteredGuongBac = finalConfig.guongBacType ? data.guongBac.filter((item) => item.type === finalConfig.guongBacType) : [];
   const filteredThuVien = finalConfig.thuVienType ? data.thuVien.filter((item) => item.type === finalConfig.thuVienType) : [];

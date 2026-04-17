@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 
 const DEFAULT_FIELDS = {
-  username: '',
+  email: '',
   password: '',
 };
 
@@ -26,25 +26,25 @@ export const useLoginForm = (submitter) => {
     event.preventDefault();
     setError('');
 
-    const username = fields.username.trim();
+    const email = fields.email.trim();
     const password = fields.password;
 
-    if (!username || !password.trim()) {
-      setError('Vui long nhap day du ten dang nhap va mat khau.');
+    if (!email || !password.trim()) {
+      setError('Vui long nhap day du email va mat khau.');
       return false;
     }
 
     try {
       setIsLoading(true);
-      await submitter({ username, password });
+      await submitter({ email, password });
       return true;
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Dang nhap that bai. Vui long kiem tra lai thong tin.');
+      setError(err.response?.data?.message || err.response?.data?.detail || err.message || 'Dang nhap that bai. Vui long kiem tra lai thong tin.');
       return false;
     } finally {
       setIsLoading(false);
     }
-  }, [fields.password, fields.username, submitter]);
+  }, [fields.email, fields.password, submitter]);
 
   return {
     fields,
