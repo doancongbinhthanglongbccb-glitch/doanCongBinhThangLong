@@ -14,6 +14,97 @@ const buildSlug = (title) =>
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 
+const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const normalizeListQuery = ({ page = 1, limit = 10, search = "", status, author, sort = "newest" } = {}) => {
+  const parsedLimit = Number(limit);
+  if (!Number.isNaN(parsedLimit) && parsedLimit > 100) {
+    throw new BadRequestError("Limit must be less than or equal to 100");
+  }
+
+  const numericPage = Number.isNaN(Number(page)) ? 1 : Math.max(1, Number(page));
+  const numericLimit = Number.isNaN(parsedLimit) ? 10 : Math.max(1, parsedLimit);
+
+  return {
+    page: numericPage,
+    limit: numericLimit,
+    search: String(search || "").trim(),
+    status: status === "draft" || status === "published" ? status : undefined,
+    author: String(author || "").trim() || undefined,
+    sort: sort === "oldest" ? "oldest" : "newest",
+  };
+};
+
+const buildPostFilter = ({ search, status, author, includeDrafts }) => {
+  const filter = {};
+
+  if (!includeDrafts) {
+    filter.status = "published";
+  } else if (status) {
+    filter.status = status;
+  }
+
+  if (author) {
+    if (!mongoose.Types.ObjectId.isValid(author)) {
+      throw new BadRequestError("Invalid author id");
+    }
+
+    filter.author = new mongoose.Types.ObjectId(author);
+  }
+
+  const normalizedSearch = String(search || "");
+  const trimmedSearch = normalizedSearch.trim();
+
+  if (trimmedSearch.length > 100) {
+    throw new BadRequestError("Search query is too long");
+  }
+
+  if (trimmedSearch) {
+    const escaped = escapeRegex(trimmedSearch);
+    filter.$or = [
+      { title: { $regex: escaped, $options: "i" } },
+      { slug: { $regex: escaped, $options: "i" } },
+    ];
+  }
+
+  return filter;
+};
+
+const buildSort = (sort) => {
+  if (sort === "oldest") {
+    return { createdAt: 1, _id: 1 };
+  }
+
+  return { createdAt: -1, _id: -1 };
+};
+
+const listPosts = async ({ includeDrafts = false, ...rawQuery } = {}) => {
+  const query = normalizeListQuery(rawQuery);
+  const filter = buildPostFilter({ ...query, includeDrafts });
+  const sort = buildSort(query.sort);
+
+  const [items, total] = await Promise.all([
+    Post.find(filter)
+      .sort(sort)
+      .skip((query.page - 1) * query.limit)
+      .limit(query.limit)
+      .select("title slug status author createdAt updatedAt publishedAt -content")
+      .populate("author", "username role")
+      .lean(),
+    Post.countDocuments(filter),
+  ]);
+
+  return {
+    data: items,
+    pagination: {
+      page: query.page,
+      limit: query.limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / query.limit)),
+    },
+  };
+};
+
 const ensureUniqueSlug = async (baseSlug, excludeId = null) => {
   let slug = baseSlug;
   let sequence = 1;
@@ -34,34 +125,7 @@ const ensureUniqueSlug = async (baseSlug, excludeId = null) => {
   }
 };
 
-const getPublishedPosts = async ({ page = 1, limit = 10, search = "" }) => {
-  const numericPage = Number.isNaN(Number(page)) ? 1 : Math.max(1, Number(page));
-  const numericLimit = Number.isNaN(Number(limit)) ? 10 : Math.min(100, Math.max(1, Number(limit)));
-
-  const filter = { status: "published" };
-  if (search) {
-    filter.title = { $regex: search, $options: "i" };
-  }
-
-  const [items, total] = await Promise.all([
-    Post.find(filter)
-      .sort({ publishedAt: -1, createdAt: -1 })
-      .skip((numericPage - 1) * numericLimit)
-      .limit(numericLimit)
-      .populate("author", "username role"),
-    Post.countDocuments(filter),
-  ]);
-
-  return {
-    data: items,
-    pagination: {
-      page: numericPage,
-      limit: numericLimit,
-      total,
-      totalPages: Math.ceil(total / numericLimit),
-    },
-  };
-};
+const getPublishedPosts = async (query) => listPosts({ ...query, includeDrafts: false });
 
 const getPublishedPostBySlug = async (slug) => {
   const post = await Post.findOne({ slug, status: "published" }).populate("author", "username role");
@@ -73,7 +137,9 @@ const getPublishedPostBySlug = async (slug) => {
   return post;
 };
 
-const getCmsPosts = async () =>
+const getCmsPosts = async (query = {}) => listPosts({ ...query, includeDrafts: true });
+
+const getAllCmsPosts = async () =>
   Post.find()
     .sort({ updatedAt: -1, createdAt: -1 })
     .populate("author", "username role");
@@ -254,6 +320,7 @@ module.exports = {
   getPublishedPosts,
   getPublishedPostBySlug,
   getCmsPosts,
+  getAllCmsPosts,
   createPost,
   updatePost,
   publishPost,

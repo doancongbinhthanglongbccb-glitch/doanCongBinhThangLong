@@ -1,69 +1,66 @@
 import axios from "axios";
+import { API_BASE_URL } from "@/config/apiBaseUrl";
 import { ApiEndpoints } from "@/services/api/endpoints";
 
-const ACCESS_TOKEN_KEY = "accessToken";
-const REFRESH_TOKEN_KEY = "refreshToken";
-const AUTH_USER_KEY = "authUser";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+const AUTH_SYNC_KEY = "doan.auth.sync";
 
-const canUseStorage = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+let accessToken = "";
+let authUser = null;
 
-export const getAccessToken = () => {
-  if (!canUseStorage()) {
-    return "";
-  }
-  return window.localStorage.getItem(ACCESS_TOKEN_KEY) || "";
+const clearAuthState = () => {
+  accessToken = "";
+  authUser = null;
 };
 
-export const getRefreshToken = () => {
-  if (!canUseStorage()) {
-    return "";
-  }
-  return window.localStorage.getItem(REFRESH_TOKEN_KEY) || "";
-};
-
-export const setTokens = ({ accessToken, refreshToken }) => {
-  if (!canUseStorage()) {
+const publishAuthEvent = (type) => {
+  if (typeof window === "undefined") {
     return;
   }
 
-  if (accessToken) {
-    window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  }
+  const payload = JSON.stringify({ type, at: Date.now() });
+  window.localStorage.setItem(AUTH_SYNC_KEY, payload);
+  window.localStorage.removeItem(AUTH_SYNC_KEY);
+};
 
-  if (refreshToken) {
-    window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    if (event.key !== AUTH_SYNC_KEY || !event.newValue) {
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(event.newValue);
+      if (payload?.type === "logout") {
+        clearAuthState();
+
+        if (window.location.pathname !== "/login") {
+          const redirectTarget = `${window.location.pathname}${window.location.search}`;
+          const redirectQuery = encodeURIComponent(redirectTarget);
+          window.location.assign(`/login?redirect=${redirectQuery}`);
+        }
+      }
+    } catch {
+      // Ignore malformed cross-tab auth sync payloads.
+    }
+  });
+}
+
+export const getAccessToken = () => {
+  return accessToken;
+};
+
+export const setTokens = ({ accessToken: nextAccessToken }) => {
+  if (nextAccessToken) {
+    accessToken = nextAccessToken;
   }
 };
 
 export const getAuthUser = () => {
-  if (!canUseStorage()) {
-    return null;
-  }
-
-  const raw = window.localStorage.getItem(AUTH_USER_KEY);
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
+  return authUser;
 };
 
 export const setAuthUser = (user) => {
-  if (!canUseStorage()) {
-    return;
-  }
-
-  if (!user) {
-    window.localStorage.removeItem(AUTH_USER_KEY);
-    return;
-  }
-
-  window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  authUser = user || null;
 };
 
 export const getUserRole = () => getAuthUser()?.role || "";
@@ -89,47 +86,47 @@ export const hasRoleAccess = (requiredRole) => {
   return role === requiredRole;
 };
 
-export const clearTokens = () => {
-  if (!canUseStorage()) {
-    return;
+export const clearTokens = (options = {}) => {
+  clearAuthState();
+
+  if (options.broadcast !== false) {
+    publishAuthEvent("logout");
   }
-  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
-  window.localStorage.removeItem(AUTH_USER_KEY);
 };
 
 export const isLoggedIn = () => Boolean(getAccessToken());
 
 export const login = async ({ email, password }) => {
-  const { data } = await axios.post(`${API_BASE_URL}${ApiEndpoints.authLogin}`, {
-    email,
+  const payload = {
     password,
-    username: email,
+  };
+
+  if (email.includes("@")) {
+    payload.email = email;
+  } else {
+    payload.username = email;
+  }
+
+  const { data } = await axios.post(`${API_BASE_URL}${ApiEndpoints.authLogin}`, payload, {
+    withCredentials: true,
   });
 
   const accessToken = data?.accessToken || data?.token || "";
-  const refreshToken = data?.refreshToken || "";
 
   if (!accessToken) {
     throw new Error("Login response does not contain accessToken");
   }
 
-  setTokens({ accessToken, refreshToken });
+  setTokens({ accessToken });
   setAuthUser(data?.user || null);
   return {
     accessToken,
-    refreshToken,
     user: data?.user || null,
   };
 };
 
 export const refreshAccessToken = async () => {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    throw new Error("Refresh token is missing");
-  }
-
-  const { data } = await axios.post(`${API_BASE_URL}${ApiEndpoints.authRefresh}`, { refreshToken });
+  const { data } = await axios.post(`${API_BASE_URL}${ApiEndpoints.authRefresh}`, {}, { withCredentials: true });
   const accessToken = data?.accessToken || "";
 
   if (!accessToken) {
@@ -137,10 +134,42 @@ export const refreshAccessToken = async () => {
   }
 
   setTokens({ accessToken });
+  if (data?.user) {
+    setAuthUser(data.user);
+  }
   return accessToken;
 };
 
-export const logout = (redirectTo = "/login") => {
+export const ensureSession = async () => {
+  if (getAccessToken()) {
+    if (!getAuthUser()) {
+      try {
+        await refreshAccessToken();
+      } catch {
+        clearTokens();
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  try {
+    await refreshAccessToken();
+    return true;
+  } catch {
+    clearTokens();
+    return false;
+  }
+};
+
+export const logout = async (redirectTo = "/login") => {
+  try {
+    await axios.post(`${API_BASE_URL}${ApiEndpoints.authLogout}`, {}, { withCredentials: true });
+  } catch {
+    // Ignore logout API errors and clear local auth state anyway.
+  }
+
   clearTokens();
 
   if (typeof window === "undefined") {

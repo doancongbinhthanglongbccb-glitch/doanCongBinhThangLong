@@ -1,57 +1,108 @@
 import type { CmsCollectionKey, CmsData } from "@/shared/types/cms";
-import { clone, getCmsStore, updateCmsStore } from "./store/cmsStore";
 import axiosClient from "@/services/axiosClient";
 import { ApiEndpoints } from "./endpoints";
 
-type RemoteConfig = {
-  header?: CmsData["header"];
-  menu?: CmsData["navItems"];
-  footer?: CmsData["footer"];
-};
-
-const isNonEmptyObject = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value) && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length > 0;
-
-const isNonEmptyArray = <T,>(value: unknown): value is T[] => Array.isArray(value) && value.length > 0;
-
-const mergeRemoteConfig = (base: CmsData, remote?: RemoteConfig): CmsData => {
-  if (!remote) {
-    return base;
+const clone = <T,>(value: T): T => {
+  if (typeof structuredClone === "function") {
+    return structuredClone(value);
   }
 
+  return JSON.parse(JSON.stringify(value)) as T;
+};
+
+const defaultCmsData: CmsData = {
+  home: {
+    mainFeedTitle: "Hoạt động tin",
+    mainFeedDescription: "",
+    guongBacTitle: "Theo gương Bác",
+    thuVienTitle: "Thư viện",
+  },
+  header: {
+    logo: "",
+    title: "",
+    subtitle: "",
+  },
+  navItems: [],
+  hero: {
+    image: "",
+    title: "",
+    subtitle: "",
+  },
+  intro: {
+    title: "Giới thiệu",
+    content: "",
+  },
+  activities: [],
+  guongBac: [],
+  thuVien: [],
+  binhDanHocVu: [],
+  sidebarImages: {
+    topImage: "",
+    bottomImage: "",
+  },
+  footer: {
+    title: "",
+    descriptionLines: [],
+    quickLinks: [],
+    contactLines: [],
+    copyright: "",
+  },
+  chatbot: {
+    title: "",
+    subtitle: "",
+    welcomeMessage: "",
+    greetingResponse: "",
+    fallbackResponse: "",
+    knowledgeBase: {},
+  },
+};
+
+const normalizeCmsData = (payload?: Partial<CmsData> & { menu?: CmsData["navItems"] }): CmsData => {
+  if (!payload) {
+    return clone(defaultCmsData);
+  }
+
+  const navItems = payload.navItems || payload.menu || [];
+
   return {
-    ...base,
-    header: isNonEmptyObject(remote.header) ? { ...base.header, ...remote.header } : base.header,
-    navItems: isNonEmptyArray<CmsData["navItems"][number]>(remote.menu) ? remote.menu : base.navItems,
-    footer: isNonEmptyObject(remote.footer) ? { ...base.footer, ...remote.footer } : base.footer,
+    ...clone(defaultCmsData),
+    ...payload,
+    navItems,
+    activities: payload.activities || [],
+    guongBac: payload.guongBac || [],
+    thuVien: payload.thuVien || [],
+    binhDanHocVu: payload.binhDanHocVu || [],
   };
 };
 
-export const getCmsData = async (): Promise<CmsData> => {
-  const localData = await getCmsStore();
+const toConfigPayload = (data: CmsData) => ({
+  home: data.home,
+  header: data.header,
+  navItems: data.navItems,
+  menu: data.navItems,
+  hero: data.hero,
+  intro: data.intro,
+  guongBac: data.guongBac,
+  thuVien: data.thuVien,
+  binhDanHocVu: data.binhDanHocVu,
+  sidebarImages: data.sidebarImages,
+  footer: data.footer,
+  chatbot: data.chatbot,
+});
 
-  try {
-    const { data } = await axiosClient.get<RemoteConfig>(ApiEndpoints.config);
-    const merged = mergeRemoteConfig(localData, data);
-    await updateCmsStore(merged);
-    return merged;
-  } catch {
-    return localData;
-  }
+export const getCmsData = async (): Promise<CmsData> => {
+  const { data } = await axiosClient.get(ApiEndpoints.config);
+  return normalizeCmsData(data);
 };
 
 export const updateCmsData = async (
   updater: CmsData | ((previous: CmsData) => CmsData),
 ): Promise<CmsData> => {
-  const next = await updateCmsStore(updater);
+  const previous = await getCmsData();
+  const next = typeof updater === "function" ? updater(previous) : updater;
 
-  await axiosClient.put(ApiEndpoints.config, {
-    header: next.header,
-    menu: next.navItems,
-    footer: next.footer,
-  });
-
-  return next;
+  const { data } = await axiosClient.put(ApiEndpoints.config, toConfigPayload(next));
+  return normalizeCmsData(data);
 };
 
 export const createCollectionItem = async <K extends CmsCollectionKey>(
@@ -82,6 +133,7 @@ export const updateCollectionItem = async <K extends CmsCollectionKey>(
       if (item.id !== id) {
         return item;
       }
+
       updatedItem = { ...item, ...payload } as CmsData[K][number];
       return updatedItem;
     }),

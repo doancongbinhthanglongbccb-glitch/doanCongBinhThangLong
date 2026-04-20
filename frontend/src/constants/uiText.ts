@@ -11,8 +11,7 @@ export const UI_TEXT = {
         configManager: "Quản lý cấu hình",
       },
       layout: {
-        appLabel: "CMS Quản trị",
-        appTitle: "Quản trị nội dung",
+        appTitle: "QUẢN TRỊ NỘI DUNG",
         appDescription: "Hệ thống dành cho cán bộ được phân quyền.",
         roleFallback: "quản trị viên",
         userFallback: "Quản trị viên",
@@ -36,7 +35,7 @@ export const UI_TEXT = {
       },
       postManager: {
         metricsTotalTitle: "Tổng bài viết",
-        metricsTotalDesc: "Tất cả nội dung trong CMS",
+        metricsTotalDesc: "Tất cả nội dung trong hệ thống",
         metricsPublishedTitle: "Đã xuất bản",
         metricsPublishedDesc: "Bài công khai trên website",
         metricsDraftTitle: "Bản nháp",
@@ -77,7 +76,7 @@ export const UI_TEXT = {
         confirmDeletePrefix: "Xóa bài viết",
       },
       dashboard: {
-        title: "Tổng quan CMS",
+        title: "Tổng quan",
         description: "Bảng điều khiển hỗ trợ theo dõi nhanh tình trạng nội dung.",
         totalContent: "Tổng nội dung",
         latestPostsTitle: "Bài viết cập nhật gần đây",
@@ -89,7 +88,7 @@ export const UI_TEXT = {
           "Xuất bản bài cần thông báo",
           "Rà soát cấu hình giao diện",
         ],
-        syncNote: "Dữ liệu được đồng bộ từ API CMS.",
+        syncNote: "Dữ liệu được đồng bộ từ API.",
         stats: {
           activitiesTitle: "Hoạt động đơn vị",
           activitiesNote: "Tin bài trong hệ thống",
@@ -124,11 +123,14 @@ export const UI_TEXT = {
       },
       headerSettings: {
         title: "Cấu hình header",
-        description: "Quản lý logo, tiêu đề và khẩu hiệu hiển thị ở đầu trang.",
+        description: "Quản lý logo, tiêu đề, khẩu hiệu và ảnh banner hiển thị trên trang công khai.",
         fieldLogo: "Logo",
         fieldTitle: "Tiêu đề",
         fieldSubtitle: "Khẩu hiệu",
+        fieldBanner: "Ảnh banner",
+        fieldBannerUrlPlaceholder: "Hoặc dán URL ảnh banner",
         logoPreviewAlt: "Xem trước logo header",
+        bannerPreviewAlt: "Xem trước ảnh banner",
         save: "Lưu Header",
         saveSuccess: "Header đã được lưu.",
         saveError: "Không thể lưu Header.",

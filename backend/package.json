@@ -4,27 +4,37 @@
   "description": "",
   "main": "src/app.js",
   "scripts": {
-    "start": "node src/app.js",
-    "dev": "node src/app.js",
+    "start": "node src/server.js",
+    "start:prod": "node src/scripts/startProduction.js",
+    "dev": "node src/server.js",
     "seed:admin": "node src/scripts/seedAdmin.js",
     "migrate:roles": "node src/scripts/migrateUserRoles.js",
+    "migrate:db": "node src/scripts/migrateDatabase.js",
     "user:upsert": "node src/scripts/upsertUserRole.js",
-    "test": "echo \"No tests configured\""
+    "test": "jest --runInBand"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@sentry/node": "^10.49.0",
     "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.4.1",
     "pino": "^9.6.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "jest": "^30.0.5",
+    "supertest": "^7.1.4"
   }
 }

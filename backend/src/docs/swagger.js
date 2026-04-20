@@ -33,13 +33,6 @@ const swaggerOptions = {
             password: { type: "string", minLength: 6 },
           },
         },
-        RefreshRequest: {
-          type: "object",
-          required: ["refreshToken"],
-          properties: {
-            refreshToken: { type: "string" },
-          },
-        },
         CreatePostRequest: {
           type: "object",
           required: ["title", "content"],
@@ -62,12 +55,29 @@ const swaggerOptions = {
         ConfigRequest: {
           type: "object",
           properties: {
+            home: { type: "object", additionalProperties: true },
             header: { type: "object", additionalProperties: true },
-            menu: {
+            navItems: {
               type: "array",
               items: { type: "object", additionalProperties: true },
             },
+            hero: { type: "object", additionalProperties: true },
+            intro: { type: "object", additionalProperties: true },
+            guongBac: {
+              type: "array",
+              items: { type: "object", additionalProperties: true },
+            },
+            thuVien: {
+              type: "array",
+              items: { type: "object", additionalProperties: true },
+            },
+            binhDanHocVu: {
+              type: "array",
+              items: { type: "object", additionalProperties: true },
+            },
+            sidebarImages: { type: "object", additionalProperties: true },
             footer: { type: "object", additionalProperties: true },
+            chatbot: { type: "object", additionalProperties: true },
           },
         },
       },
@@ -107,14 +117,7 @@ const swaggerOptions = {
         post: {
           tags: ["Auth"],
           summary: "Refresh access token",
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/RefreshRequest" },
-              },
-            },
-          },
+          description: "Uses refresh token from httpOnly cookie.",
           responses: {
             200: { description: "Token refreshed" },
             401: { description: "Invalid refresh token" },
@@ -125,14 +128,7 @@ const swaggerOptions = {
         post: {
           tags: ["Auth"],
           summary: "Logout and revoke refresh token",
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/RefreshRequest" },
-              },
-            },
-          },
+          description: "Clears refresh token cookie and revokes server token record.",
           responses: {
             200: { description: "Logout success" },
             401: { description: "Invalid refresh token" },

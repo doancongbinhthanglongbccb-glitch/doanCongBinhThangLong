@@ -1,11 +1,12 @@
 import type { ElementType, ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ChevronRight, LogOut, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ChevronRight, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SidebarSection from "@/shared/components/admin/SidebarSection";
 import { logout } from "@/services/auth";
 import { cn } from "@/lib/utils";
 import { UI_TEXT } from "@/constants/uiText";
+import unitLogo from "@/assets/logo-293.png";
 
 type AdminMenuItem = {
   key: string;
@@ -36,11 +37,15 @@ const AdminLayout = ({ menuSections, active, onChange, pageTitle, breadcrumb = [
         <aside className="flex w-full flex-col border-b border-slate-200 bg-white shadow-sm lg:sticky lg:top-0 lg:h-screen lg:w-[240px] lg:border-b-0 lg:border-r">
           <div className="border-b border-slate-200 px-5 py-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-700">
-                <ShieldCheck className="h-6 w-6" />
+              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-red-100 bg-white p-[2px]">
+                <img
+                  src={unitLogo}
+                  alt="Logo đơn vị"
+                  className="h-full w-full object-contain"
+                  style={{ imageRendering: "crisp-edges" }}
+                />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{UI_TEXT.vi.admin.layout.appLabel}</p>
                 <h1 className="text-base font-semibold leading-5 text-slate-900">{UI_TEXT.vi.admin.layout.appTitle}</h1>
               </div>
             </div>
@@ -85,7 +90,7 @@ const AdminLayout = ({ menuSections, active, onChange, pageTitle, breadcrumb = [
                 <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
                   <span>{UI_TEXT.vi.admin.layout.breadcrumbRoot}</span>
                   {breadcrumb.map((item) => (
-                    <span key={item} className="inline-flex items-center gap-2 normal-case tracking-normal text-slate-400">
+                    <span key={item} className="inline-flex items-center gap-2 uppercase tracking-[0.14em] text-slate-400">
                       <ChevronRight className="h-3.5 w-3.5" />
                       {item}
                     </span>

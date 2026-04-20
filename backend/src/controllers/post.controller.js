@@ -6,14 +6,30 @@ const getPosts = asyncHandler(async (req, res) => {
     page: req.query.page,
     limit: req.query.limit,
     search: req.query.search,
+    status: req.query.status,
+    author: req.query.author,
+    sort: req.query.sort,
   });
 
   return res.status(200).json(result);
 });
 
 const getCmsPosts = asyncHandler(async (req, res) => {
-  const posts = await postService.getCmsPosts();
-  return res.status(200).json(posts);
+  if (Object.keys(req.query || {}).length === 0) {
+    const posts = await postService.getAllCmsPosts();
+    return res.status(200).json(posts);
+  }
+
+  const result = await postService.getCmsPosts({
+    page: req.query.page,
+    limit: req.query.limit,
+    search: req.query.search,
+    status: req.query.status,
+    author: req.query.author,
+    sort: req.query.sort,
+  });
+
+  return res.status(200).json(result);
 });
 
 const getPostBySlug = asyncHandler(async (req, res) => {

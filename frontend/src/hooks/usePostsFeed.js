@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getPosts } from '@/services/api/postApi';
+import { getPublicPosts } from '@/services/api/postApi';
 
 export const usePostsFeed = () => {
   const [posts, setPosts] = useState([]);
 
   const reloadPosts = useCallback(async () => {
-    const nextPosts = await getPosts();
-    setPosts(nextPosts);
+    const nextPosts = await getPublicPosts({ page: 1, limit: 10 });
+    setPosts(nextPosts.data);
   }, []);
 
   useEffect(() => {

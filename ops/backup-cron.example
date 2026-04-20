@@ -1,0 +1,2 @@
+# Run database backups every night at 02:15 and keep the last 14 archives.
+15 2 * * * BACKUP_DIR=/var/backups/doan-cms RETENTION_COUNT=14 MONGO_URI=mongodb://admin:password@mongo:27017/doan_cms?authSource=admin /opt/doan-cms/ops/backup-mongo.sh >> /var/log/doan-cms-backup.log 2>&1

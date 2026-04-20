@@ -64,13 +64,44 @@ const login = async (payload, context = {}) => {
     throw new BadRequestError("Username and password are required");
   }
 
+  logger.info(
+    {
+      action: "LOGIN_ATTEMPT",
+      username,
+      ip: context.ip || null,
+      requestId: context.requestId || null,
+    },
+    "Login attempt"
+  );
+
   const user = await User.findOne({ username });
   if (!user) {
+    logger.warn(
+      {
+        action: "LOGIN_FAILED",
+        reason: "user_not_found",
+        username,
+        ip: context.ip || null,
+        requestId: context.requestId || null,
+      },
+      "Login failed"
+    );
     throw new UnauthorizedError("Invalid credentials");
   }
 
   const isValidPassword = await bcrypt.compare(password, user.password);
   if (!isValidPassword) {
+    logger.warn(
+      {
+        action: "LOGIN_FAILED",
+        reason: "invalid_password",
+        userId: String(user._id),
+        username: user.username,
+        ip: context.ip || null,
+        requestId: context.requestId || null,
+      },
+      "Login failed"
+    );
     throw new UnauthorizedError("Invalid credentials");
   }
 
@@ -124,7 +155,7 @@ const refresh = async (refreshToken, context = {}) => {
     throw new UnauthorizedError("Invalid or expired refresh token");
   }
 
-  const user = await User.findById(decoded.userId).select("role");
+  const user = await User.findById(decoded.userId).select("role username");
   if (!user || !["admin", "editor"].includes(user.role)) {
     throw new UnauthorizedError("Invalid or expired refresh token");
   }
@@ -171,19 +202,27 @@ const refresh = async (refreshToken, context = {}) => {
     "Token refreshed"
   );
 
-  return { accessToken, refreshToken: nextRefreshToken };
+  return {
+    accessToken,
+    refreshToken: nextRefreshToken,
+    user: {
+      id: String(user._id),
+      username: user.username,
+      role: user.role,
+    },
+  };
 };
 
 const logout = async (refreshToken, context = {}) => {
   if (!refreshToken) {
-    throw new BadRequestError("Refresh token is required");
+    return { message: "Logged out successfully" };
   }
 
   let decoded;
   try {
     decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
   } catch {
-    throw new UnauthorizedError("Invalid or expired refresh token");
+    return { message: "Logged out successfully" };
   }
 
   await deleteRefreshToken(refreshToken);
