@@ -88,7 +88,7 @@ const listPosts = async ({ includeDrafts = false, ...rawQuery } = {}) => {
       .sort(sort)
       .skip((query.page - 1) * query.limit)
       .limit(query.limit)
-      .select("title slug status author createdAt updatedAt publishedAt -content")
+      .select("title slug status author createdAt updatedAt publishedAt")
       .populate("author", "username role")
       .lean(),
     Post.countDocuments(filter),
