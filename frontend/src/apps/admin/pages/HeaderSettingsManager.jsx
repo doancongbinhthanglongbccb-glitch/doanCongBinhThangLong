@@ -12,6 +12,7 @@ const HeaderSettingsManager = ({ data, updateSiteData }) => {
     logo: data.header.logo || "",
     title: data.header.title || "",
     subtitle: data.header.subtitle || "",
+    bannerImage: data.hero?.image || "",
   });
 
   useEffect(() => {
@@ -19,16 +20,17 @@ const HeaderSettingsManager = ({ data, updateSiteData }) => {
       logo: data.header.logo || "",
       title: data.header.title || "",
       subtitle: data.header.subtitle || "",
+      bannerImage: data.hero?.image || "",
     });
-  }, [data.header.logo, data.header.title, data.header.subtitle]);
+  }, [data.header.logo, data.header.title, data.header.subtitle, data.hero?.image]);
 
-  const handleImageUpload = (event) => {
+  const handleImageUpload = (key) => (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = () => {
-      setForm((prev) => ({ ...prev, logo: String(reader.result || "") }));
+      setForm((prev) => ({ ...prev, [key]: String(reader.result || "") }));
     };
     reader.readAsDataURL(file);
   };
@@ -44,6 +46,10 @@ const HeaderSettingsManager = ({ data, updateSiteData }) => {
           logo: form.logo,
           title: form.title,
           subtitle: form.subtitle,
+        },
+        hero: {
+          ...prev.hero,
+          image: form.bannerImage,
         },
       }));
       toast.success(text.saveSuccess);
@@ -63,7 +69,7 @@ const HeaderSettingsManager = ({ data, updateSiteData }) => {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">{text.fieldLogo}</label>
-              <Input type="file" accept="image/*" onChange={handleImageUpload} />
+              <Input type="file" accept="image/*" onChange={handleImageUpload("logo")} />
               {form.logo ? <img src={form.logo} alt={text.logoPreviewAlt} className="h-20 w-20 border border-slate-200 object-contain" /> : null}
             </div>
             <div className="space-y-2">
@@ -73,6 +79,18 @@ const HeaderSettingsManager = ({ data, updateSiteData }) => {
               <Input value={form.subtitle} onChange={(event) => setForm((prev) => ({ ...prev, subtitle: event.target.value }))} />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{text.fieldBanner}</label>
+            <Input type="file" accept="image/*" onChange={handleImageUpload("bannerImage")} />
+            <Input
+              value={form.bannerImage}
+              placeholder={text.fieldBannerUrlPlaceholder}
+              onChange={(event) => setForm((prev) => ({ ...prev, bannerImage: event.target.value }))}
+            />
+            {form.bannerImage ? <img src={form.bannerImage} alt={text.bannerPreviewAlt} className="h-28 w-full max-w-md border border-slate-200 object-cover" /> : null}
+          </div>
+
           <Button type="submit">{text.save || commonText.save}</Button>
         </form>
       </CardContent>

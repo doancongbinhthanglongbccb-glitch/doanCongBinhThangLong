@@ -12,13 +12,6 @@ const loginSchema = z
     path: ["username"],
   });
 
-const refreshSchema = z
-  .object({
-    refreshToken: z.string().trim().min(1, "Refresh token is required"),
-  })
-  .strict();
-
 module.exports = {
   loginSchema,
-  refreshSchema,
 };

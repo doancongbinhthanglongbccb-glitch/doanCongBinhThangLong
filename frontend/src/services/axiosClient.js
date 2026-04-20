@@ -1,16 +1,14 @@
 import axios from "axios";
+import { API_BASE_URL } from "@/config/apiBaseUrl";
 import { ApiEndpoints } from "@/services/api/endpoints";
-import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "@/services/auth";
+import { clearTokens, getAccessToken, setAuthUser, setTokens } from "@/services/auth";
 
 const LOGIN_PATH = "/login";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
-
-const canUseStorage = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 
 const clearTokenAndRedirectToLogin = () => {
   clearTokens();
 
-  if (!canUseStorage()) {
+  if (typeof window === "undefined") {
     return;
   }
 
@@ -25,6 +23,7 @@ const clearTokenAndRedirectToLogin = () => {
 
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -55,13 +54,9 @@ axiosClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = getRefreshToken();
-        if (!refreshToken) {
-          throw new Error("Refresh token is missing");
-        }
-
         // Use bare axios here to avoid interceptor recursion while refreshing.
-        const { data } = await axios.post(`${API_BASE_URL}${ApiEndpoints.authRefresh}`, { refreshToken }, {
+        const { data } = await axios.post(`${API_BASE_URL}${ApiEndpoints.authRefresh}`, {}, {
+          withCredentials: true,
           headers: {
             "Content-Type": "application/json",
           },
@@ -73,6 +68,9 @@ axiosClient.interceptors.response.use(
         }
 
         setTokens({ accessToken: nextAccessToken });
+        if (data?.user) {
+          setAuthUser(data.user);
+        }
         originalRequest.headers = originalRequest.headers ?? {};
         originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
         return axiosClient(originalRequest);

@@ -1,0 +1,115 @@
+name: dev
+
+services:
+  mongo:
+    image: mongo:7
+    restart: on-failure:5
+    mem_limit: 512m
+    cpus: "0.5"
+    expose:
+      - "27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mongosh --quiet --eval "db.adminCommand('ping').ok" | grep 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+    restart: on-failure:5
+    mem_limit: 256m
+    cpus: "0.25"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "${DEV_API_PORT:-5005}:5000"
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      MONGO_URI: mongodb://mongo:27017/doan_cms
+      ADMIN_USERNAME: admin@example.com
+      ADMIN_PASSWORD: Admin@12345678!
+      JWT_SECRET: dev-access-secret
+      JWT_REFRESH_SECRET: dev-refresh-secret
+      ACCESS_TOKEN_EXPIRE: 15m
+      REFRESH_TOKEN_EXPIRE: 7d
+      COOKIE_SECURE: "false"
+      COOKIE_SAME_SITE: lax
+      COOKIE_DOMAIN: ""
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8081,http://localhost:5173}
+      REQUEST_BODY_LIMIT: 10mb
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX: 200
+      LOG_LEVEL: info
+      SWAGGER_ENABLED: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:5000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  frontend:
+    image: node:20-alpine
+    restart: on-failure:5
+    mem_limit: 512m
+    cpus: "0.75"
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - >
+        if [ ! -d node_modules ] || [ ! -f node_modules/.package-lock-hash ] || [ "$(cat node_modules/.package-lock-hash 2>/dev/null)" != "$(sha1sum package-lock.json | awk '{print $1}')" ]; then
+          npm ci && sha1sum package-lock.json | awk '{print $1}' > node_modules/.package-lock-hash;
+        fi &&
+        npm run dev -- --host 0.0.0.0 --port 80 --strictPort
+    environment:
+      VITE_API_URL: ""
+      VITE_API_BASE_URL: ""
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    expose:
+      - "80"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1:80/ >/dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: on-failure:5
+    mem_limit: 128m
+    cpus: "0.25"
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    ports:
+      - "${DEV_HTTP_PORT:-8080}:80"
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1/health | grep -q '"status":"ok"'
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  mongodb_data:
+  frontend_node_modules:

@@ -12,7 +12,7 @@ const validateBody = (schema) => (req, res, next) => {
         message: issue.message,
       }));
 
-      return next(new BadRequestError(`Validation failed: ${issues[0]?.message || "Invalid request body"}`));
+      return next(new BadRequestError("Validation failed", issues, "VALIDATION_ERROR"));
     }
 
     return next(error);

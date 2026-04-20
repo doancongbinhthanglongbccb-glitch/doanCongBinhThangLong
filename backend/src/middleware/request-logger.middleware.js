@@ -4,13 +4,14 @@ const { randomUUID } = require("crypto");
 const requestLogger = (req, res, next) => {
   const start = Date.now();
   const requestId = req.headers["x-request-id"] || randomUUID();
+  req.id = requestId;
   req.requestId = requestId;
-  res.setHeader("x-request-id", requestId);
+  res.setHeader("X-Request-Id", requestId);
 
   logger.info(
     {
       action: "INCOMING_REQUEST",
-      endpoint: req.originalUrl,
+      path: req.originalUrl,
       method: req.method,
       userId: req.user?.userId || null,
       requestId,
@@ -22,7 +23,7 @@ const requestLogger = (req, res, next) => {
     logger.info(
       {
         action: "REQUEST_COMPLETED",
-        endpoint: req.originalUrl,
+        path: req.originalUrl,
         method: req.method,
         statusCode: res.statusCode,
         durationMs: Date.now() - start,

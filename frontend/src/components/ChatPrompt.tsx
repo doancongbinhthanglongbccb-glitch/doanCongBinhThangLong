@@ -3,8 +3,6 @@ import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const CHAT_PROMPT = {
-  storageKey: "chatPromptDismissedUntil",
-  ttlMs: 7 * 24 * 60 * 60 * 1000,
   showDelayMinMs: 4500,
   showDelayMaxMs: 6500,
   autoHideMs: 4500,
@@ -27,22 +25,11 @@ const ThinkingDots = () => (
   </div>
 );
 
-const readDismissedUntil = () => {
-  if (typeof window === "undefined") return 0;
-  const stored = window.localStorage.getItem(CHAT_PROMPT.storageKey);
-  const value = stored ? Number(stored) : 0;
-  return Number.isFinite(value) ? value : 0;
-};
-
 const ChatPrompt = () => {
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") {
-      return;
-    }
-
-    if (readDismissedUntil() >= Date.now()) {
       return;
     }
 
@@ -68,9 +55,6 @@ const ChatPrompt = () => {
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(CHAT_PROMPT.storageKey, String(Date.now() + CHAT_PROMPT.ttlMs));
-    }
   };
 
   return (

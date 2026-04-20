@@ -8,6 +8,38 @@ import { UI_TEXT } from "@/constants/uiText";
 
 const createMenuId = () => `nav-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
+const normalizePath = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "/";
+  }
+
+  const withLeadingSlash = raw.startsWith("/") ? raw : `/${raw}`;
+  const compact = withLeadingSlash.replace(/\/{2,}/g, "/");
+  const withoutTrailingSlash = compact !== "/" ? compact.replace(/\/+$/, "") : compact;
+  return withoutTrailingSlash || "/";
+};
+
+const composeChildPath = (parentHref, childHref) => {
+  const parent = normalizePath(parentHref);
+  const child = normalizePath(childHref);
+
+  if (child === "/") {
+    return parent;
+  }
+
+  if (parent === "/" || child.startsWith(`${parent}/`)) {
+    return child;
+  }
+
+  const childSegments = child.split("/").filter(Boolean);
+  if (childSegments.length === 1) {
+    return `${parent}/${childSegments[0]}`.replace(/\/{2,}/g, "/");
+  }
+
+  return child;
+};
+
 const TreeRow = ({ item, index, onUpdate, onMove, onRemove, onToggle, onAddChild, onUpdateChild, onRemoveChild }) => {
   const text = UI_TEXT.vi.admin.menuManager;
   const [open, setOpen] = useState(true);
@@ -171,9 +203,24 @@ const MenuManager = ({ data, updateSiteData }) => {
   };
 
   const saveMenus = async () => {
+    const normalizedItems = items.map((item) => {
+      const normalizedParentHref = normalizePath(item.href);
+      const normalizedChildren = (item.children || []).map((child) => ({
+        ...child,
+        href: composeChildPath(normalizedParentHref, child.href),
+      }));
+
+      return {
+        ...item,
+        href: normalizedParentHref,
+        children: normalizedChildren,
+      };
+    });
+
     try {
       setSaving(true);
-      await updateSiteData((prev) => ({ ...prev, navItems: items }));
+      await updateSiteData((prev) => ({ ...prev, navItems: normalizedItems }));
+      setItems(normalizedItems);
       toast.success(text.menuSaved);
     } catch {
       toast.error(text.menuSaveError);

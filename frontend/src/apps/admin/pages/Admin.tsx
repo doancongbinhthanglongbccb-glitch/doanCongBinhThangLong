@@ -6,8 +6,8 @@ import { getCmsData, updateCmsData } from "@/services/api/cmsApi";
 import { getCmsPosts } from "@/services/api/postApi";
 import { getAuthUser, getUserRole, hasRoleAccess } from "@/services/auth";
 import type { CmsData } from "@/shared/types/cms";
-import type { Post } from "@/shared/types/post";
 import { UI_TEXT } from "@/constants/uiText";
+import { getApiErrorMessage } from "@/services/api/errors";
 
 type AdminKey =
   | "dashboard"
@@ -41,7 +41,6 @@ const pageMeta: Record<AdminKey, { title: string; breadcrumb: string[] }> = {
 
 const Admin = () => {
   const [data, setData] = useState<CmsData | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -85,10 +84,9 @@ const Admin = () => {
       setLoading(true);
       const [snapshot, cmsPosts] = await Promise.all([getCmsData(), getCmsPosts()]);
       setData({ ...snapshot, activities: cmsPosts });
-      setPosts(cmsPosts);
       setError("");
-    } catch {
-      setError(UI_TEXT.vi.admin.common.adminDataLoadError);
+    } catch (loadError) {
+      setError(getApiErrorMessage(loadError, UI_TEXT.vi.admin.common.adminDataLoadError));
     } finally {
       setLoading(false);
     }
@@ -134,7 +132,6 @@ const Admin = () => {
       <Outlet
         context={{
           data,
-          posts,
           role,
           userId,
           canEditContent,

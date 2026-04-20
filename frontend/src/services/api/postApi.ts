@@ -2,6 +2,25 @@ import type { CreatePostInput, Post, UpdatePostInput } from "@/shared/types/post
 import axiosClient from "@/services/axiosClient";
 import { ApiEndpoints } from "./endpoints";
 
+export type PostListQuery = {
+  search?: string;
+  status?: "draft" | "published";
+  author?: string;
+  sort?: "newest" | "oldest";
+  page?: number;
+  limit?: number;
+};
+
+export type PostListResponse = {
+  data: Post[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
 type BackendPost = {
   _id?: string;
   id?: string;
@@ -71,29 +90,62 @@ const mapPost = (item: BackendPost): Post => ({
   updatedAt: item.updatedAt,
 });
 
-export const getPosts = async (): Promise<Post[]> => {
-  const response = await axiosClient.get<PaginatedPublishedPostsResponse | BackendPost[]>(ApiEndpoints.posts);
-  const payload = response.data;
-  const items = Array.isArray(payload) ? payload : payload?.data || [];
-  return items.map(mapPost);
+export const getPublicPosts = async (query: PostListQuery = {}): Promise<PostListResponse> => {
+  const { data } = await axiosClient.get<PaginatedPublishedPostsResponse | BackendPost[]>(ApiEndpoints.posts, {
+    params: query,
+  });
+
+  if (Array.isArray(data)) {
+    return {
+      data: data.map(mapPost),
+      pagination: {
+        page: query.page || 1,
+        limit: query.limit || data.length || 10,
+        total: data.length,
+        totalPages: 1,
+      },
+    };
+  }
+
+  return {
+    data: (data?.data || []).map(mapPost),
+    pagination: data.pagination,
+  };
+};
+
+export const getPosts = async (query: PostListQuery = {}): Promise<PostListResponse> => {
+  const { data } = await axiosClient.get<PostListResponse>(ApiEndpoints.cmsPosts, {
+    params: query,
+  });
+
+  if (Array.isArray(data)) {
+    return {
+      data: data.map(mapPost),
+      pagination: {
+        page: query.page || 1,
+        limit: query.limit || data.length || 10,
+        total: data.length,
+        totalPages: 1,
+      },
+    };
+  }
+
+  return {
+    data: (data?.data || []).map(mapPost),
+    pagination: data.pagination,
+  };
 };
 
 export const getCmsPosts = async (): Promise<Post[]> => {
-  const { data } = await axiosClient.get<BackendPost[]>(ApiEndpoints.cmsPosts);
+  const { data } = await axiosClient.get<PostListResponse | BackendPost[]>(ApiEndpoints.cmsPosts);
 
-  if (import.meta.env.DEV) {
-    console.debug("[getCmsPosts] raw response", data);
+  if (Array.isArray(data)) {
+    const mapped = data.map(mapPost);
+    return Array.from(new Map<string, Post>(mapped.map((post) => [(post._id || post.id) as string, post])).values());
   }
 
-  const mapped = (data || []).map(mapPost);
-  const uniqueById = Array.from(new Map(mapped.map((post) => [(post._id || post.id), post])).values());
-
-  if (import.meta.env.DEV && mapped.length !== uniqueById.length) {
-    console.debug("[getCmsPosts] duplicates removed", {
-      originalCount: mapped.length,
-      uniqueCount: uniqueById.length,
-    });
-  }
+  const mapped = (data?.data || []).map(mapPost);
+  const uniqueById = Array.from(new Map<string, Post>(mapped.map((post) => [(post._id || post.id) as string, post])).values());
 
   return uniqueById;
 };

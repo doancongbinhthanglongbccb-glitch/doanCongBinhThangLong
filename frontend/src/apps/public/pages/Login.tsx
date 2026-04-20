@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { isLoggedIn, login } from "@/services/auth";
+import { ensureSession, login } from "@/services/auth";
 import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { getApiErrorMessage } from "@/services/api/errors";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,10 +18,23 @@ const Login = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (isLoggedIn()) {
+    let mounted = true;
+
+    const restoreSession = async () => {
+      const sessionOk = await ensureSession();
+      if (!mounted || !sessionOk) {
+        return;
+      }
+
       const redirect = searchParams.get("redirect") || "/admin";
       navigate(redirect, { replace: true });
-    }
+    };
+
+    void restoreSession();
+
+    return () => {
+      mounted = false;
+    };
   }, [navigate, searchParams]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -32,8 +46,8 @@ const Login = () => {
       await login({ email, password });
       const redirect = searchParams.get("redirect") || "/admin";
       navigate(redirect, { replace: true });
-    } catch {
-      setError("Sai email hoặc mật khẩu");
+    } catch (error) {
+      setError(getApiErrorMessage(error, "Sai email hoặc mật khẩu"));
     } finally {
       setIsLoading(false);
     }

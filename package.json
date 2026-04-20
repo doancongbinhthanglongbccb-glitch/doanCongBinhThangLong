@@ -1,0 +1,20 @@
+{
+  "name": "doancongbinhthanglong-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev:full": "node scripts/dev-start.js",
+    "dev:start": "npm run dev:full",
+    "dev:backend": "node scripts/dev-backend.js",
+    "dev:ui": "node scripts/dev-ui.js",
+    "dev:stop": "docker compose --env-file .env.dev -f docker-compose.dev.yml -p dev down --remove-orphans",
+    "dev:logs": "docker compose --env-file .env.dev -f docker-compose.dev.yml -p dev logs -f",
+    "dev:check": "node scripts/dev-check.js",
+    "dev:restart": "npm run dev:stop && npm run dev:full && npm run dev:check",
+    "dev:reset": "node scripts/dev-reset.js",
+    "db:backup": "docker compose --env-file .env.prod -f docker-compose.prod.yml -p prod run --rm mongo-backup backup-once",
+    "prod:start": "docker compose --env-file .env.prod -f docker-compose.prod.yml -p prod up -d --build",
+    "prod:stop": "docker compose --env-file .env.prod -f docker-compose.prod.yml -p prod down --remove-orphans",
+    "prod:logs": "docker compose --env-file .env.prod -f docker-compose.prod.yml -p prod logs -f"
+  }
+}

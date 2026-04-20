@@ -1,17 +1,11 @@
 export const ApiEndpoints = {
   authLogin: "/api/auth/login",
   authRefresh: "/api/auth/refresh",
+  authLogout: "/api/auth/logout",
   config: "/api/config",
-  cms: "/api/cms",
-  cmsCollection: (collection: string) => `/api/cms/${collection}`,
-  cmsCollectionItem: (collection: string, id: string) => `/api/cms/${collection}/${id}`,
   posts: "/api/posts",
   cmsPosts: "/api/posts/cms",
   postById: (id: string) => `/api/posts/${id}`,
   postPublish: (id: string) => `/api/posts/${id}/publish`,
   postBySlug: (slug: string) => `/api/posts/${slug}`,
-  users: "/api/users",
-  userById: (id: string) => `/api/users/${id}`,
-  media: "/api/media",
-  mediaById: (id: string) => `/api/media/${id}`,
 } as const;

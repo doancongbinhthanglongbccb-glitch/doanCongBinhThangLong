@@ -5,13 +5,56 @@ import chatbotIcon from "@/assets/chatbot.png";
 
 const BANNER_FOCUS_Y = "30%";
 
+const normalizePath = (value = "/") => {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "/";
+  }
+
+  const withLeadingSlash = raw.startsWith("/") ? raw : `/${raw}`;
+  const compact = withLeadingSlash.replace(/\/{2,}/g, "/");
+  const withoutTrailingSlash = compact !== "/" ? compact.replace(/\/+$/, "") : compact;
+  return withoutTrailingSlash || "/";
+};
+
+const resolveChildHref = (parentHref, childHref) => {
+  const parent = normalizePath(parentHref);
+  const child = normalizePath(childHref);
+
+  if (child === "/") {
+    return parent;
+  }
+
+  if (parent === "/" || child.startsWith(`${parent}/`)) {
+    return child;
+  }
+
+  const childSegments = child.split("/").filter(Boolean);
+  if (childSegments.length === 1) {
+    return `${parent}/${childSegments[0]}`.replace(/\/{2,}/g, "/");
+  }
+
+  return child;
+};
+
 const getVisibleNavItems = (navItems = []) => {
   return navItems
     .filter((item) => item.visible !== false)
-    .map((item) => ({
-      ...item,
-      children: (item.children || []).filter((child) => child.visible !== false),
-    }));
+    .map((item) => {
+      const normalizedParentHref = normalizePath(item.href);
+      const children = (item.children || [])
+        .filter((child) => child.visible !== false)
+        .map((child) => ({
+          ...child,
+          href: resolveChildHref(normalizedParentHref, child.href),
+        }));
+
+      return {
+        ...item,
+        href: normalizedParentHref,
+        children,
+      };
+    });
 };
 
 const PublicLayout = ({ data, topBarDate, children }) => {

@@ -6,7 +6,8 @@ import PublicLayout from "@/shared/layouts/PublicLayout";
 import SectionTitle from "@/shared/components/system/SectionTitle";
 import MarkdownContent from "@/shared/components/MarkdownContent";
 import { getCmsData } from "@/services/api/cmsApi";
-import { getPosts } from "@/services/api/postApi";
+import { getPublicPosts } from "@/services/api/postApi";
+import { getApiErrorMessage } from "@/services/api/errors";
 
 const Home = () => {
   const pageContainerClass = "w-full max-w-[1500px] mx-auto px-1 sm:px-2";
@@ -20,17 +21,17 @@ const Home = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [cmsData, posts] = await Promise.all([getCmsData(), getPosts()]);
+        const [cmsData, postsResponse] = await Promise.all([getCmsData(), getPublicPosts({ page: 1, limit: 10 })]);
         if (!mounted) {
           return;
         }
-        setData({ ...cmsData, activities: posts });
+        setData({ ...cmsData, activities: postsResponse.data });
         setError("");
       } catch (loadError) {
         if (!mounted) {
           return;
         }
-        setError("Không thể tải nội dung website.");
+        setError(getApiErrorMessage(loadError, "Không thể tải nội dung website."));
       } finally {
         if (mounted) {
           setLoading(false);

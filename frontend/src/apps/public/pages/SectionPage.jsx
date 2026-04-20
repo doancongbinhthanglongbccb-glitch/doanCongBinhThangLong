@@ -7,7 +7,8 @@ import PublicLayout from "@/shared/layouts/PublicLayout";
 import SectionTitle from "@/shared/components/system/SectionTitle";
 import MarkdownContent from "@/shared/components/MarkdownContent";
 import { getCmsData } from "@/services/api/cmsApi";
-import { getPosts } from "@/services/api/postApi";
+import { getPublicPosts } from "@/services/api/postApi";
+import { getApiErrorMessage } from "@/services/api/errors";
 
 const pageConfig = {
   "/gioi-thieu": {
@@ -19,12 +20,27 @@ const pageConfig = {
     activityCategory: "Huấn luyện",
     bannerSubtitle: "Hoạt động huấn luyện, diễn tập và sẵn sàng chiến đấu",
   },
+  "/hoat-dong-tin/huan-luyen": {
+    title: "Huấn luyện",
+    activityCategory: "Huấn luyện",
+    bannerSubtitle: "Hoạt động huấn luyện, diễn tập và sẵn sàng chiến đấu",
+  },
   "/hoat-dong-don-vi/cuu-ho": {
     title: "Cứu hộ",
     activityCategory: "Cứu hộ",
     bannerSubtitle: "Hoạt động cứu hộ cứu nạn, hỗ trợ nhân dân",
   },
+  "/hoat-dong-tin/cuu-ho": {
+    title: "Cứu hộ",
+    activityCategory: "Cứu hộ",
+    bannerSubtitle: "Hoạt động cứu hộ cứu nạn, hỗ trợ nhân dân",
+  },
   "/hoat-dong-don-vi/dan-van": {
+    title: "Dân vận",
+    activityCategory: "Dân vận",
+    bannerSubtitle: "Công tác dân vận và chương trình vì cộng đồng",
+  },
+  "/hoat-dong-tin/dan-van": {
     title: "Dân vận",
     activityCategory: "Dân vận",
     bannerSubtitle: "Công tác dân vận và chương trình vì cộng đồng",
@@ -75,17 +91,17 @@ const SectionPage = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [cmsData, posts] = await Promise.all([getCmsData(), getPosts()]);
+        const [cmsData, postsResponse] = await Promise.all([getCmsData(), getPublicPosts({ page: 1, limit: 10 })]);
         if (!mounted) {
           return;
         }
-        setData({ ...cmsData, activities: posts });
+        setData({ ...cmsData, activities: postsResponse.data });
         setError("");
-      } catch {
+      } catch (loadError) {
         if (!mounted) {
           return;
         }
-        setError("Không thể tải dữ liệu trang.");
+        setError(getApiErrorMessage(loadError, "Không thể tải dữ liệu trang."));
       } finally {
         if (mounted) {
           setLoading(false);

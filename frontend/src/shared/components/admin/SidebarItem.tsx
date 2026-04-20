@@ -17,7 +17,7 @@ const SidebarItem = ({ label, icon: Icon, isActive, onClick }: SidebarItemProps)
       type="button"
       onClick={onClick}
       aria-current={isActive ? "page" : undefined}
-      className={`flex min-h-11 w-full items-center gap-3 border-l-4 px-4 py-3 text-left text-sm font-medium transition-colors duration-200 ease-out ${activeClass}`}
+      className={`flex min-h-11 w-full items-center gap-3 border-l-4 px-4 py-3 text-left text-sm font-medium uppercase tracking-[0.08em] transition-colors duration-200 ease-out ${activeClass}`}
     >
       <Icon className="h-4 w-4 shrink-0" />
       <span className="truncate">{label}</span>

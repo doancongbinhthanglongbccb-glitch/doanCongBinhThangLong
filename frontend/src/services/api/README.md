@@ -1,38 +1,27 @@
-# API Layer (Mock-first, Backend-ready)
+# API Layer (Backend-only)
 
 This folder provides a clean API boundary for the frontend.
 
 ## Current mode
-- Domain APIs are split by responsibility: `postApi.ts`, `userApi.ts`, `mediaApi.ts`.
-- `cmsApi.ts` remains a content aggregate API for CMS sections and shared collections.
-- A shared mock store module powers CMS-backed domains in mock mode.
-- Public/Admin pages do not read/write global shared context.
-- Components only consume app services under `src/apps/*/services`.
+- Domain APIs are split by responsibility: `postApi.ts`, `cmsApi.ts`.
+- All CMS, post, and auth data is loaded from backend APIs.
+- Refresh token is cookie-based (`httpOnly` cookie) and never stored in localStorage.
+- Components consume only service modules, not storage fallbacks.
 
-## Backend migration plan
-1. Keep function signatures unchanged in domain APIs where possible.
-2. Replace mock implementation with HTTP requests via `httpClient.ts`.
-3. Use endpoint constants in `endpoints.ts` to avoid hard-coded URLs.
-4. Set `VITE_API_BASE_URL` in environment files.
+## API contract
+- Endpoints are centralized in `endpoints.ts`.
+- Set `VITE_API_BASE_URL` in environment files.
 
-## Expected backend endpoints
-- `GET /api/cms`
-- `PUT /api/cms`
-- `POST /api/cms/:collection`
-- `PATCH /api/cms/:collection/:id`
-- `DELETE /api/cms/:collection/:id`
+## Backend endpoints
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `POST /api/auth/logout`
+- `GET /api/config`
+- `PUT /api/config`
 - `GET /api/posts`
-- `GET /api/posts/:id`
+- `GET /api/posts/cms`
+- `GET /api/posts/:slug`
 - `POST /api/posts`
-- `PATCH /api/posts/:id`
+- `PUT /api/posts/:id`
+- `PUT /api/posts/:id/publish`
 - `DELETE /api/posts/:id`
-- `GET /api/users`
-- `GET /api/users/:id`
-- `POST /api/users`
-- `PATCH /api/users/:id`
-- `DELETE /api/users/:id`
-- `GET /api/media`
-- `GET /api/media/:id`
-- `POST /api/media`
-- `PATCH /api/media/:id`
-- `DELETE /api/media/:id`
