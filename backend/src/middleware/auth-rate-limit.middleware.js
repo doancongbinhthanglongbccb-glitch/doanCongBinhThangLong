@@ -1,5 +1,6 @@
 const rateLimit = require("express-rate-limit");
 const logger = require("../utils/logger");
+const { buildErrorBody } = require("./error.middleware");
 
 const authLoginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -18,10 +19,12 @@ const authLoginRateLimiter = rateLimit({
       "Auth login rate limit exceeded"
     );
 
-    res.status(429).json({
-      message: "Too many login attempts, please try again later",
-      statusCode: 429,
-    });
+    res.status(429).json(
+      buildErrorBody({
+        code: "AUTH_RATE_LIMIT_EXCEEDED",
+        message: "Too many login attempts, please try again later",
+      })
+    );
   },
 });
 

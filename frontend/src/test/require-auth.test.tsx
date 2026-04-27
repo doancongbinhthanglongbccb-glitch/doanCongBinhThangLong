@@ -1,14 +1,17 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import RequireAuth from "@/components/RequireAuth";
+import RequireAuth from "@/features/auth/components/RequireAuth";
 
 const authMock = vi.hoisted(() => ({
   ensureSession: vi.fn(),
   hasRoleAccess: vi.fn(),
 }));
 
-vi.mock("@/services/auth", () => ({
+// `RequireAuth` resolves through `@/app/routes/ProtectedRoute` ->
+// `@/features/auth/components/RequireAuth` which imports the auth helpers
+// from the feature-local service module.
+vi.mock("@/features/auth/services/auth.service", () => ({
   ensureSession: authMock.ensureSession,
   hasRoleAccess: authMock.hasRoleAccess,
 }));

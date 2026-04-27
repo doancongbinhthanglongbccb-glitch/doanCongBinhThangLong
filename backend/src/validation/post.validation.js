@@ -9,6 +9,10 @@ const createPostSchema = z
     content: contentSchema,
     thumbnail: z.string().trim().max(2048, "Thumbnail is too long").optional(),
     status: z.enum(["draft", "published"]).optional(),
+    categoryIds: z.array(z.string().trim().min(1)).optional(),
+    excerpt: z.string().trim().max(500).optional(),
+    seoTitle: z.string().trim().max(200).optional(),
+    seoDescription: z.string().trim().max(500).optional(),
   })
   .strict();
 
@@ -17,7 +21,11 @@ const updatePostSchema = z
     title: titleSchema.optional(),
     content: contentSchema.optional(),
     thumbnail: z.string().trim().max(2048, "Thumbnail is too long").optional(),
-    status: z.enum(["draft", "published"]).optional(),
+    status: z.enum(["draft", "published", "archived"]).optional(),
+    categoryIds: z.array(z.string().trim().min(1)).optional(),
+    excerpt: z.string().trim().max(500).optional(),
+    seoTitle: z.string().trim().max(200).optional(),
+    seoDescription: z.string().trim().max(500).optional(),
   })
   .strict()
   .refine((payload) => Object.keys(payload).length > 0, {

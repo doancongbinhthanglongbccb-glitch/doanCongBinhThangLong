@@ -4,12 +4,17 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
+const path = require("path");
+const fs = require("fs");
 
-const authRoutes = require("./routes/auth.routes");
-const postRoutes = require("./routes/post.routes");
-const configRoutes = require("./routes/config.routes");
+const authRoutes = require("./modules/auth/routes/auth.routes");
+const postRoutes = require("./modules/post/routes/post.routes");
+const configRoutes = require("./modules/config/routes/config.routes");
+const categoryRoutes = require("./modules/category/routes/category.routes");
+const mediaRoutes = require("./modules/media/routes/media.routes");
 const setupSwagger = require("./docs/swagger");
 const errorMiddleware = require("./middleware/error.middleware");
+const { buildErrorBody } = require("./middleware/error.middleware");
 const requestLogger = require("./middleware/request-logger.middleware");
 const requestTimeoutMiddleware = require("./middleware/request-timeout.middleware");
 const writeRateLimiter = require("./middleware/write-rate-limit.middleware");
@@ -63,10 +68,12 @@ const apiRateLimiter = rateLimit({
       "API rate limit exceeded"
     );
 
-    res.status(429).json({
-      message: "Too many requests, please try again later",
-      statusCode: 429,
-    });
+    res.status(429).json(
+      buildErrorBody({
+        code: "RATE_LIMIT_EXCEEDED",
+        message: "Too many requests, please try again later",
+      })
+    );
   },
 });
 
@@ -75,6 +82,19 @@ const createApp = () => {
 
   // Trust the first proxy hop (nginx) so req.ip is correct for rate limiting.
   app.set("trust proxy", 1);
+
+  // Serve uploaded media files (public read)
+  const uploadDir = path.resolve(process.cwd(), "uploads");
+  fs.mkdirSync(uploadDir, { recursive: true });
+  app.use(
+    "/media",
+    express.static(uploadDir, {
+      fallthrough: false,
+      index: false,
+      dotfiles: "deny",
+      maxAge: "7d",
+    })
+  );
 
   app.use(helmet());
   app.use(cors(createCorsOptions()));
@@ -109,13 +129,20 @@ const createApp = () => {
   app.delete("/api/posts/:id", writeRateLimiter);
 
   app.use("/api/posts", postRoutes);
+  app.use("/api/categories", categoryRoutes);
   app.use("/api/config", configRoutes);
+  app.use("/api/media", mediaRoutes);
   if (env.SWAGGER_ENABLED) {
     setupSwagger(app);
   }
 
   app.use((req, res) => {
-    return res.status(404).json({ message: "Route not found" });
+    return res.status(404).json(
+      buildErrorBody({
+        code: "NOT_FOUND",
+        message: "Route not found",
+      })
+    );
   });
 
   app.use(errorMiddleware);

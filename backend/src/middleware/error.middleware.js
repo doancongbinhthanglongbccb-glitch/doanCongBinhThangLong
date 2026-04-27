@@ -2,6 +2,27 @@ const { AppError } = require("../utils/errors");
 const logger = require("../utils/logger");
 const { captureException } = require("../utils/sentry");
 
+/**
+ * Build the canonical error response body.
+ *
+ * Shape: `{ error: { code, message, details? } }`
+ * `details` is omitted (undefined) when not provided to keep payloads small.
+ */
+const buildErrorBody = ({ code, message, details }) => {
+  const body = {
+    error: {
+      code,
+      message,
+    },
+  };
+
+  if (details !== undefined && details !== null) {
+    body.error.details = details;
+  }
+
+  return body;
+};
+
 const errorMiddleware = (err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
@@ -10,8 +31,8 @@ const errorMiddleware = (err, req, res, next) => {
   const isKnownError = err instanceof AppError;
   const statusCode = isKnownError ? err.statusCode : 500;
   const message = isKnownError ? err.message : "Internal server error";
-  const code = isKnownError ? err.code : "INTERNAL_SERVER_ERROR";
-  const details = isKnownError ? err.details || null : null;
+  const code = isKnownError ? err.code : "INTERNAL_ERROR";
+  const details = isKnownError ? err.details ?? null : null;
 
   const logContext = {
     action: "REQUEST_ERROR",
@@ -20,11 +41,11 @@ const errorMiddleware = (err, req, res, next) => {
     userId: req.user?.userId || null,
     requestId: req.requestId || null,
     statusCode,
+    errorCode: code,
     errorName: err.name,
     errorMessage: err.message,
   };
 
-  // Include stack trace for non-known errors (500s)
   if (!isKnownError || statusCode >= 500) {
     logContext.errorStack = err.stack;
   }
@@ -38,6 +59,7 @@ const errorMiddleware = (err, req, res, next) => {
         endpoint: req.originalUrl,
         method: req.method,
         statusCode,
+        errorCode: code,
       },
       user: {
         id: req.user?.userId || undefined,
@@ -45,11 +67,8 @@ const errorMiddleware = (err, req, res, next) => {
     });
   }
 
-  return res.status(statusCode).json({
-    message,
-    code,
-    details,
-  });
+  return res.status(statusCode).json(buildErrorBody({ code, message, details }));
 };
 
 module.exports = errorMiddleware;
+module.exports.buildErrorBody = buildErrorBody;

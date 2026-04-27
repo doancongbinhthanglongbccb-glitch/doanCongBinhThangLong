@@ -22,6 +22,35 @@ const postSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    categoryIds: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: "Category",
+      default: [],
+      index: true,
+    },
+    excerpt: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 500,
+    },
+    seoTitle: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 200,
+    },
+    seoDescription: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 500,
+    },
+    viewCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -29,7 +58,7 @@ const postSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["draft", "published"],
+      enum: ["draft", "published", "archived"],
       default: "draft",
       index: true,
     },
@@ -48,5 +77,6 @@ postSchema.index({ status: 1 });
 postSchema.index({ author: 1 });
 postSchema.index({ createdAt: -1 });
 postSchema.index({ status: 1, author: 1, createdAt: -1 });
+postSchema.index({ status: 1, categoryIds: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Post", postSchema);

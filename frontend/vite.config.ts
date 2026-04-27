@@ -7,6 +7,8 @@ import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // Use a stable dev port (3000) to match docker-compose.dev.yml.
+  // Can be overridden via CLI flags or by setting VITE_PROXY_TARGET for Docker.
   build: (() => {
     const env = loadEnv(mode, process.cwd(), "");
     const canUploadSourcemaps = mode === "production" && env.SENTRY_AUTH_TOKEN && env.SENTRY_ORG && env.SENTRY_PROJECT;
@@ -16,12 +18,14 @@ export default defineConfig(({ mode }) => ({
     };
   })(),
   server: {
+    // Default dev port: 3000
     host: "::",
-    port: 8080,
+    port: 3000,
     allowedHosts: ["suds-dial-bruising.ngrok-free.dev", "localhost", "127.0.0.1"],
     proxy: {
       "/api": {
-        target: "http://localhost:5000",
+        // When running in Docker, override via `VITE_PROXY_TARGET=http://backend:8000`.
+        target: loadEnv(mode, process.cwd(), "").VITE_PROXY_TARGET || "http://localhost:8000",
         changeOrigin: true,
       },
     },

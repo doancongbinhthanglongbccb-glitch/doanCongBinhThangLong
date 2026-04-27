@@ -1,14 +1,15 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import Login from "@/apps/public/pages/Login";
+import LoginForm from "@/features/auth/components/LoginForm";
 
 const authMock = vi.hoisted(() => ({
   ensureSession: vi.fn(),
   login: vi.fn(),
 }));
 
-vi.mock("@/services/auth", () => ({
+// `LoginForm` resolves auth helpers through the feature-local service module.
+vi.mock("@/features/auth/services/auth.service", () => ({
   ensureSession: authMock.ensureSession,
   login: authMock.login,
 }));
@@ -29,13 +30,16 @@ describe("Login flow", () => {
     render(
       <MemoryRouter initialEntries={["/login?redirect=%2Fadmin"]}>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<LoginForm />} />
           <Route path="/admin" element={<div>Admin Page</div>} />
         </Routes>
       </MemoryRouter>,
     );
 
-    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "admin@example.com" } });
+    // `LoginForm` shows a loading spinner while `ensureSession` settles. Wait
+    // for the email field to mount before driving the form.
+    const emailInput = await screen.findByLabelText("Email");
+    fireEvent.change(emailInput, { target: { value: "admin@example.com" } });
     fireEvent.change(screen.getByLabelText("Mật khẩu"), { target: { value: "secret123" } });
     fireEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
 

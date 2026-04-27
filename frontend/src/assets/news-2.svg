@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800" role="img" aria-label="News image 2 placeholder">
-  <rect width="1280" height="800" fill="#5a1f2b"/>
-  <circle cx="980" cy="170" r="120" fill="#f6b73c" opacity="0.9"/>
-  <rect x="80" y="90" width="1120" height="620" rx="20" fill="#9c2f4a"/>
-  <text x="130" y="210" font-family="Segoe UI, Arial, sans-serif" font-size="78" font-weight="700" fill="#ffffff">NEWS 02</text>
-  <text x="130" y="300" font-family="Segoe UI, Arial, sans-serif" font-size="36" fill="#ffe9ed">Community activities</text>
-</svg>

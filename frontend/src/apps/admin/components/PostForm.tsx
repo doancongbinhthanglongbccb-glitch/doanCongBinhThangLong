@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MarkdownEditor from "@/apps/admin/components/MarkdownEditor";
+import MediaUploadField from "@/features/media/components/MediaUploadField";
 
 type PostFormState = {
   title: string;
@@ -14,10 +15,9 @@ type PostFormProps = {
   form: PostFormState;
   setForm: React.Dispatch<React.SetStateAction<PostFormState>>;
   categoryOptions: string[];
-  handleImageUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
-const PostForm = ({ form, setForm, categoryOptions, handleImageUpload }: PostFormProps) => {
+const PostForm = ({ form, setForm, categoryOptions }: PostFormProps) => {
   return (
     <div className="space-y-4">
       <section className="space-y-3 border border-slate-200 bg-white p-4">
@@ -69,20 +69,13 @@ const PostForm = ({ form, setForm, categoryOptions, handleImageUpload }: PostFor
       <section className="space-y-3 border border-slate-200 bg-white p-4">
         <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Media</h4>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Ảnh minh họa (tải từ thiết bị)</label>
-          <Input type="file" accept="image/*" onChange={handleImageUpload} />
-          {form.image ? <img src={form.image} alt="Preview" className="h-24 w-40 border border-slate-200 object-cover" /> : null}
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Hoặc nhập URL ảnh</label>
-          <Input
-            value={form.image}
-            onChange={(event) => setForm((prev) => ({ ...prev, image: event.target.value }))}
-            placeholder="URL ảnh hoặc tên file"
-          />
-        </div>
+        <MediaUploadField
+          label="Ảnh minh họa"
+          value={form.image}
+          onChange={(nextUrl) => setForm((prev) => ({ ...prev, image: nextUrl }))}
+          previewClassName="h-24 w-40 border border-slate-200 object-cover"
+          placeholder="Dán URL ảnh hoặc chọn file để upload"
+        />
       </section>
     </div>
   );
