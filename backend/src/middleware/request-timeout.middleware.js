@@ -1,4 +1,5 @@
 const logger = require("../utils/logger");
+const { buildErrorBody } = require("./error.middleware");
 
 const REQUEST_TIMEOUT_MS = 10 * 1000; // 10 seconds
 
@@ -17,11 +18,12 @@ const requestTimeoutMiddleware = (req, res, next) => {
         "Request timeout exceeded"
       );
 
-      res.status(408).json({
-        message: "Request timeout",
-        code: "REQUEST_TIMEOUT",
-        statusCode: 408,
-      });
+      res.status(408).json(
+        buildErrorBody({
+          code: "REQUEST_TIMEOUT",
+          message: "Request timeout",
+        })
+      );
     }
   }, REQUEST_TIMEOUT_MS);
 

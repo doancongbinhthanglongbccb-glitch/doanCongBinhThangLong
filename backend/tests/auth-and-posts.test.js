@@ -7,24 +7,30 @@ const jwt = require("jsonwebtoken");
 const request = require("supertest");
 const { UnauthorizedError, BadRequestError } = require("../src/utils/errors");
 
-jest.mock("../src/services/auth.service", () => ({
+// Service modules live under `src/modules/<feature>/service/...`. Mock those
+// canonical paths directly; jest factory variables must start with `mock*`.
+const mockAuthService = {
   login: jest.fn(),
   refresh: jest.fn(),
   logout: jest.fn(),
-}));
+};
 
-jest.mock("../src/services/post.service", () => ({
+const mockPostService = {
   getPublishedPosts: jest.fn(),
   getCmsPosts: jest.fn(),
+  getAllCmsPosts: jest.fn(),
   getPublishedPostBySlug: jest.fn(),
   createPost: jest.fn(),
   updatePost: jest.fn(),
   publishPost: jest.fn(),
   deletePost: jest.fn(),
-}));
+};
 
-const authService = require("../src/services/auth.service");
-const postService = require("../src/services/post.service");
+jest.mock("../src/modules/auth/service/auth.service", () => mockAuthService);
+jest.mock("../src/modules/post/service/post.service", () => mockPostService);
+
+const authService = require("../src/modules/auth/service/auth.service");
+const postService = require("../src/modules/post/service/post.service");
 const { app } = require("../src/app");
 
 const validPostPayload = {
@@ -92,7 +98,7 @@ describe("Auth and post flows", () => {
       .send({});
 
     expect(response.status).toBe(401);
-    expect(response.body.code).toBe("UNAUTHORIZED");
+    expect(response.body.error?.code).toBe("UNAUTHORIZED");
   });
 
   test("POST /api/auth/logout clears refresh cookie", async () => {
@@ -136,7 +142,7 @@ describe("Auth and post flows", () => {
       .send(validPostPayload);
 
     expect(response.status).toBe(401);
-    expect(response.body.code).toBe("UNAUTHORIZED");
+    expect(response.body.error?.code).toBe("UNAUTHORIZED");
   });
 
   test("POST /api/posts allows editor role", async () => {
@@ -162,15 +168,19 @@ describe("Auth and post flows", () => {
 
   test("GET /api/posts returns data", async () => {
     postService.getPublishedPosts.mockResolvedValue({
-      data: [{ _id: "p1", title: "Post 1", status: "published" }],
-      pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
+      items: [{ _id: "p1", title: "Post 1", status: "published" }],
+      total: 1,
+      page: 1,
+      size: 10,
+      pages: 1,
     });
 
     const response = await request(app).get("/api/posts");
 
     expect(response.status).toBe(200);
-    expect(Array.isArray(response.body.data)).toBe(true);
-    expect(response.body.data).toHaveLength(1);
+    expect(Array.isArray(response.body.items)).toBe(true);
+    expect(response.body.items).toHaveLength(1);
+    expect(response.body).toMatchObject({ total: 1, page: 1, size: 10, pages: 1 });
     expect(postService.getPublishedPosts).toHaveBeenCalledWith(
       expect.objectContaining({
         page: undefined,
@@ -185,8 +195,11 @@ describe("Auth and post flows", () => {
 
   test("GET /api/posts forwards status filter", async () => {
     postService.getPublishedPosts.mockResolvedValue({
-      data: [],
-      pagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
+      items: [],
+      total: 0,
+      page: 1,
+      size: 10,
+      pages: 1,
     });
 
     const response = await request(app).get("/api/posts?status=published");
@@ -199,14 +212,17 @@ describe("Auth and post flows", () => {
 
   test("GET /api/posts returns pagination payload", async () => {
     postService.getPublishedPosts.mockResolvedValue({
-      data: [{ _id: "p1", title: "Post 1", status: "published" }],
-      pagination: { page: 2, limit: 5, total: 11, totalPages: 3 },
+      items: [{ _id: "p1", title: "Post 1", status: "published" }],
+      total: 11,
+      page: 2,
+      size: 5,
+      pages: 3,
     });
 
     const response = await request(app).get("/api/posts?page=2&limit=5");
 
     expect(response.status).toBe(200);
-    expect(response.body.pagination).toEqual({ page: 2, limit: 5, total: 11, totalPages: 3 });
+    expect(response.body).toMatchObject({ total: 11, page: 2, size: 5, pages: 3 });
     expect(postService.getPublishedPosts).toHaveBeenCalledWith(
       expect.objectContaining({ page: "2", limit: "5" }),
     );
@@ -214,15 +230,18 @@ describe("Auth and post flows", () => {
 
   test("GET /api/posts handles pagination overflow", async () => {
     postService.getPublishedPosts.mockResolvedValue({
-      data: [],
-      pagination: { page: 999, limit: 10, total: 25, totalPages: 3 },
+      items: [],
+      total: 25,
+      page: 999,
+      size: 10,
+      pages: 3,
     });
 
     const response = await request(app).get("/api/posts?page=999&limit=10");
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([]);
-    expect(response.body.pagination).toEqual({ page: 999, limit: 10, total: 25, totalPages: 3 });
+    expect(response.body.items).toEqual([]);
+    expect(response.body).toMatchObject({ total: 25, page: 999, size: 10, pages: 3 });
     expect(postService.getPublishedPosts).toHaveBeenCalledWith(
       expect.objectContaining({ page: "999", limit: "10" }),
     );
@@ -230,8 +249,11 @@ describe("Auth and post flows", () => {
 
   test("GET /api/posts forwards search filter", async () => {
     postService.getPublishedPosts.mockResolvedValue({
-      data: [],
-      pagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
+      items: [],
+      total: 0,
+      page: 1,
+      size: 10,
+      pages: 1,
     });
 
     const response = await request(app).get("/api/posts?search=abc");
@@ -244,8 +266,11 @@ describe("Auth and post flows", () => {
 
   test("GET /api/posts forwards newest sort", async () => {
     postService.getPublishedPosts.mockResolvedValue({
-      data: [{ _id: "p2" }, { _id: "p1" }],
-      pagination: { page: 1, limit: 10, total: 2, totalPages: 1 },
+      items: [{ _id: "p2" }, { _id: "p1" }],
+      total: 2,
+      page: 1,
+      size: 10,
+      pages: 1,
     });
 
     const response = await request(app).get("/api/posts?sort=newest");
@@ -258,8 +283,11 @@ describe("Auth and post flows", () => {
 
   test("GET /api/posts forwards oldest sort", async () => {
     postService.getPublishedPosts.mockResolvedValue({
-      data: [{ _id: "p1" }, { _id: "p2" }],
-      pagination: { page: 1, limit: 10, total: 2, totalPages: 1 },
+      items: [{ _id: "p1" }, { _id: "p2" }],
+      total: 2,
+      page: 1,
+      size: 10,
+      pages: 1,
     });
 
     const response = await request(app).get("/api/posts?sort=oldest");
@@ -278,7 +306,7 @@ describe("Auth and post flows", () => {
     const response = await request(app).get("/api/posts?limit=101");
 
     expect(response.status).toBe(400);
-    expect(response.body.code).toBe("BAD_REQUEST");
+    expect(response.body.error?.code).toBe("BAD_REQUEST");
     expect(postService.getPublishedPosts).toHaveBeenCalledWith(
       expect.objectContaining({ limit: "101" }),
     );
@@ -288,7 +316,7 @@ describe("Auth and post flows", () => {
     const response = await request(app).get("/api/posts/cms");
 
     expect(response.status).toBe(401);
-    expect(response.body.code).toBe("UNAUTHORIZED");
+    expect(response.body.error?.code).toBe("UNAUTHORIZED");
   });
 
   test("PUT /api/config rejects invalid payloads with validation details", async () => {
@@ -301,8 +329,8 @@ describe("Auth and post flows", () => {
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ header: { logo: 123 } });
 
-    expect(response.status).toBe(400);
-    expect(response.body.code).toBe("VALIDATION_ERROR");
-    expect(Array.isArray(response.body.details)).toBe(true);
+    expect(response.status).toBe(422);
+    expect(response.body.error?.code).toBe("VALIDATION_ERROR");
+    expect(Array.isArray(response.body.error?.details)).toBe(true);
   });
 });

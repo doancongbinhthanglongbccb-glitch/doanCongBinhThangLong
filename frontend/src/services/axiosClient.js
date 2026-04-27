@@ -1,9 +1,13 @@
 import axios from "axios";
 import { API_BASE_URL } from "@/config/apiBaseUrl";
 import { ApiEndpoints } from "@/services/api/endpoints";
-import { clearTokens, getAccessToken, setAuthUser, setTokens } from "@/services/auth";
-
-const LOGIN_PATH = "/login";
+import {
+  clearTokens,
+  getAccessToken,
+  setAuthUser,
+  setTokens,
+} from "@/features/auth/services/auth.service";
+import { ROUTES } from "@/lib/constants";
 
 const clearTokenAndRedirectToLogin = () => {
   clearTokens();
@@ -12,13 +16,13 @@ const clearTokenAndRedirectToLogin = () => {
     return;
   }
 
-  if (window.location.pathname === LOGIN_PATH) {
+  if (window.location.pathname === ROUTES.LOGIN) {
     return;
   }
 
   const redirectTarget = `${window.location.pathname}${window.location.search}`;
   const redirectQuery = encodeURIComponent(redirectTarget);
-  window.location.assign(`${LOGIN_PATH}?redirect=${redirectQuery}`);
+  window.location.assign(`${ROUTES.LOGIN}?redirect=${redirectQuery}`);
 };
 
 const axiosClient = axios.create({

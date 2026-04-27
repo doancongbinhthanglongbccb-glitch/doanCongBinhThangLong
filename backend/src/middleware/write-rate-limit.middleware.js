@@ -1,5 +1,6 @@
 const rateLimit = require("express-rate-limit");
 const logger = require("../utils/logger");
+const { buildErrorBody } = require("./error.middleware");
 
 const writeRateLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
@@ -23,11 +24,12 @@ const writeRateLimiter = rateLimit({
       "Write operation rate limit exceeded"
     );
 
-    res.status(429).json({
-      message: "Too many write operations, please try again later",
-      code: "WRITE_RATE_LIMIT_EXCEEDED",
-      statusCode: 429,
-    });
+    res.status(429).json(
+      buildErrorBody({
+        code: "WRITE_RATE_LIMIT_EXCEEDED",
+        message: "Too many write operations, please try again later",
+      })
+    );
   },
 });
 

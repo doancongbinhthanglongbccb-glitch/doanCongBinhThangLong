@@ -28,8 +28,13 @@ type BackendPost = {
   slug: string;
   content: string;
   thumbnail?: string;
-  status?: "draft" | "published";
+  status?: "draft" | "published" | "archived";
   publishedAt?: string;
+  excerpt?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  viewCount?: number;
+  categoryIds?: string[];
   author?: {
     _id?: string;
     id?: string;
@@ -40,13 +45,80 @@ type BackendPost = {
   updatedAt?: string;
 };
 
-type PaginatedPublishedPostsResponse = {
-  data: BackendPost[];
+/**
+ * Canonical pagination shape returned by the backend
+ * (`{ items, total, page, size, pages }`).
+ *
+ * The legacy shape `{ data, pagination: { page, limit, total, totalPages } }`
+ * is still accepted by `normalizePaginatedResponse` for backwards compatibility
+ * with any caller that has not been migrated yet.
+ */
+type CanonicalPaginatedResponse<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+};
+
+type LegacyPaginatedResponse<T> = {
+  data: T[];
   pagination: {
     page: number;
     limit: number;
     total: number;
     totalPages: number;
+  };
+};
+
+type PaginatedBackendPostResponse =
+  | CanonicalPaginatedResponse<BackendPost>
+  | LegacyPaginatedResponse<BackendPost>;
+
+const normalizePaginatedResponse = <Item, Mapped>(
+  payload: CanonicalPaginatedResponse<Item> | LegacyPaginatedResponse<Item> | Item[] | null | undefined,
+  fallbackQuery: PostListQuery,
+  map: (item: Item) => Mapped,
+): { data: Mapped[]; pagination: PostListResponse["pagination"] } => {
+  if (!payload) {
+    return {
+      data: [],
+      pagination: {
+        page: fallbackQuery.page || 1,
+        limit: fallbackQuery.limit || 10,
+        total: 0,
+        totalPages: 1,
+      },
+    };
+  }
+
+  if (Array.isArray(payload)) {
+    return {
+      data: payload.map(map),
+      pagination: {
+        page: fallbackQuery.page || 1,
+        limit: fallbackQuery.limit || payload.length || 10,
+        total: payload.length,
+        totalPages: 1,
+      },
+    };
+  }
+
+  if ("items" in payload) {
+    return {
+      data: (payload.items || []).map(map),
+      pagination: {
+        page: payload.page,
+        limit: payload.size,
+        total: payload.total,
+        totalPages: payload.pages,
+      },
+    };
+  }
+
+  return {
+    data: (payload.data || []).map(map),
+    pagination: payload.pagination,
   };
 };
 
@@ -78,7 +150,12 @@ const mapPost = (item: BackendPost): Post => ({
   status: item.status || "draft",
   publishedAt: item.publishedAt,
   date: formatDate(item.publishedAt || item.createdAt),
-  category: "Tin tuc",
+  category: "",
+  categoryIds: item.categoryIds || [],
+  excerpt: item.excerpt || "",
+  seoTitle: item.seoTitle || "",
+  seoDescription: item.seoDescription || "",
+  viewCount: typeof item.viewCount === "number" ? item.viewCount : 0,
   author: item.author
     ? {
         id: item.author._id || item.author.id || "",
@@ -91,63 +168,32 @@ const mapPost = (item: BackendPost): Post => ({
 });
 
 export const getPublicPosts = async (query: PostListQuery = {}): Promise<PostListResponse> => {
-  const { data } = await axiosClient.get<PaginatedPublishedPostsResponse | BackendPost[]>(ApiEndpoints.posts, {
+  const { data } = await axiosClient.get<PaginatedBackendPostResponse | BackendPost[]>(ApiEndpoints.posts, {
     params: query,
   });
 
-  if (Array.isArray(data)) {
-    return {
-      data: data.map(mapPost),
-      pagination: {
-        page: query.page || 1,
-        limit: query.limit || data.length || 10,
-        total: data.length,
-        totalPages: 1,
-      },
-    };
-  }
-
-  return {
-    data: (data?.data || []).map(mapPost),
-    pagination: data.pagination,
-  };
+  return normalizePaginatedResponse<BackendPost, Post>(data, query, mapPost);
 };
 
 export const getPosts = async (query: PostListQuery = {}): Promise<PostListResponse> => {
-  const { data } = await axiosClient.get<PostListResponse>(ApiEndpoints.cmsPosts, {
+  const { data } = await axiosClient.get<PaginatedBackendPostResponse | BackendPost[]>(ApiEndpoints.cmsPosts, {
     params: query,
   });
 
-  if (Array.isArray(data)) {
-    return {
-      data: data.map(mapPost),
-      pagination: {
-        page: query.page || 1,
-        limit: query.limit || data.length || 10,
-        total: data.length,
-        totalPages: 1,
-      },
-    };
-  }
-
-  return {
-    data: (data?.data || []).map(mapPost),
-    pagination: data.pagination,
-  };
+  return normalizePaginatedResponse<BackendPost, Post>(data, query, mapPost);
 };
 
 export const getCmsPosts = async (): Promise<Post[]> => {
-  const { data } = await axiosClient.get<PostListResponse | BackendPost[]>(ApiEndpoints.cmsPosts);
+  const { data } = await axiosClient.get<PaginatedBackendPostResponse | BackendPost[]>(ApiEndpoints.cmsPosts);
 
-  if (Array.isArray(data)) {
-    const mapped = data.map(mapPost);
-    return Array.from(new Map<string, Post>(mapped.map((post) => [(post._id || post.id) as string, post])).values());
-  }
-
-  const mapped = (data?.data || []).map(mapPost);
-  const uniqueById = Array.from(new Map<string, Post>(mapped.map((post) => [(post._id || post.id) as string, post])).values());
-
-  return uniqueById;
+  const normalized = normalizePaginatedResponse<BackendPost, Post>(data, {}, mapPost);
+  // The CMS list endpoint may return overlapping posts when paginated under
+  // the hood; deduplicate by id before handing the array to the admin UI.
+  return Array.from(
+    new Map<string, Post>(
+      normalized.data.map((post) => [(post._id || post.id) as string, post]),
+    ).values(),
+  );
 };
 
 export const getPostById = async (id: string): Promise<Post | null> => {

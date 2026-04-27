@@ -1,5 +1,5 @@
 const { ZodError } = require("zod");
-const { BadRequestError } = require("../utils/errors");
+const { ValidationError } = require("../utils/errors");
 
 const validateBody = (schema) => (req, res, next) => {
   try {
@@ -12,7 +12,7 @@ const validateBody = (schema) => (req, res, next) => {
         message: issue.message,
       }));
 
-      return next(new BadRequestError("Validation failed", issues, "VALIDATION_ERROR"));
+      return next(new ValidationError("Validation failed", issues));
     }
 
     return next(error);
