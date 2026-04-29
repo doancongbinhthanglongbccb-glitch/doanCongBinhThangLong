@@ -12,6 +12,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Chỉ deploy khi các secrets SSH đã được cấu hình.
+    # Nếu bạn chưa tạo secrets, job sẽ bị skip thay vì fail.
+    if: ${{ secrets.PROD_SSH_HOST != '' && secrets.PROD_SSH_USER != '' && secrets.PROD_SSH_KEY != '' && github.ref == 'refs/heads/main' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
