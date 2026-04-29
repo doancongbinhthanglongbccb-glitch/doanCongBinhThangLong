@@ -1,0 +1,30 @@
+name: Deploy production
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT || 22 }}
+          script: |
+            set -euo pipefail
+            chmod +x /opt/doan-cms/ops/deploy-prod.sh
+            APP_DIR=/opt/doan-cms ENV_FILE=.env.prod COMPOSE_FILE=docker-compose.prod.yml /opt/doan-cms/ops/deploy-prod.sh
+

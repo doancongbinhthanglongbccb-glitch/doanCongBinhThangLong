@@ -6,11 +6,14 @@ import { loadEnv } from "vite";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const hmrClientPort = env.VITE_HMR_CLIENT_PORT ? Number(env.VITE_HMR_CLIENT_PORT) : undefined;
+
+  return {
   // Use a stable dev port (3000) to match docker-compose.dev.yml.
   // Can be overridden via CLI flags or by setting VITE_PROXY_TARGET for Docker.
   build: (() => {
-    const env = loadEnv(mode, process.cwd(), "");
     const canUploadSourcemaps = mode === "production" && env.SENTRY_AUTH_TOKEN && env.SENTRY_ORG && env.SENTRY_PROJECT;
 
     return {
@@ -25,16 +28,18 @@ export default defineConfig(({ mode }) => ({
     proxy: {
       "/api": {
         // When running in Docker, override via `VITE_PROXY_TARGET=http://backend:8000`.
-        target: loadEnv(mode, process.cwd(), "").VITE_PROXY_TARGET || "http://localhost:8000",
+        target: env.VITE_PROXY_TARGET || "http://localhost:8000",
         changeOrigin: true,
       },
     },
     hmr: {
       overlay: false,
+      // When the browser loads the app via a reverse proxy (e.g. nginx :8080 → Vite :3000),
+      // set VITE_HMR_CLIENT_PORT to the public port so the WS client connects through nginx.
+      ...(hmrClientPort ? { clientPort: hmrClientPort } : {}),
     },
   },
   plugins: (() => {
-    const env = loadEnv(mode, process.cwd(), "");
     const sentryPlugin =
       mode === "production" && env.SENTRY_AUTH_TOKEN && env.SENTRY_ORG && env.SENTRY_PROJECT
         ? sentryVitePlugin({
@@ -52,4 +57,5 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
-}));
+  };
+});

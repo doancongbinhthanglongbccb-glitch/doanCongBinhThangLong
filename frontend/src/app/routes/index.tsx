@@ -1,10 +1,11 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import NotFound from "@/apps/public/pages/NotFound";
 import Admin from "@/features/admin/pages/AdminPage";
-import Dashboard from "@/features/admin/pages/DashboardPage";
+import { DashboardPage as Dashboard } from "@/features/admin/dashboard";
 import LoginForm from "@/features/auth/components/LoginForm";
-import { PublicPostsHomePage, PublicPostsSectionPage, CmsPostsPage } from "@/features/posts";
+import { PublicPostsHomePage, PublicPostsSectionPage, CmsPostsPage, PostEditorPage } from "@/features/posts";
 import { ConfigManagerPage } from "@/features/config";
+import { UsersPage } from "@/features/users";
 import { ROUTES } from "@/lib/constants";
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -18,11 +19,21 @@ const AppRoutes = () => {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="posts" element={<CmsPostsPage />} />
+          <Route path="posts/new" element={<PostEditorPage />} />
+          <Route path="posts/:id/edit" element={<PostEditorPage />} />
           <Route
             path="config"
             element={(
               <ProtectedRoute role="admin">
                 <ConfigManagerPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="users"
+            element={(
+              <ProtectedRoute role="admin">
+                <UsersPage />
               </ProtectedRoute>
             )}
           />

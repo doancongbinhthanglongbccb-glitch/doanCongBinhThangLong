@@ -9,22 +9,22 @@ type AdminStatCardProps = {
 };
 
 const toneClasses = {
-  primary: "border-red-200 bg-red-50 text-red-700",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  warning: "border-amber-200 bg-amber-50 text-amber-700",
-  secondary: "border-slate-200 bg-slate-50 text-slate-700",
+  primary: "border-admin-stat-primary-border bg-admin-stat-primary-bg text-admin-stat-primary-fg",
+  success: "border-admin-stat-success-border bg-admin-stat-success-bg text-admin-stat-success-fg",
+  warning: "border-admin-stat-warning-border bg-admin-stat-warning-bg text-admin-stat-warning-fg",
+  secondary: "border-admin-stat-secondary-border bg-admin-stat-secondary-bg text-admin-stat-secondary-fg",
 };
 
 const AdminStatCard = ({ title, value, description, icon: Icon, tone = "secondary" }: AdminStatCardProps) => {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
+    <div className="admin-card">
+      <div className="flex items-start justify-between gap-admin-grid">
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{title}</p>
-          <p className="text-3xl font-semibold tracking-tight text-slate-900">{value}</p>
-          <p className="text-sm text-slate-500">{description}</p>
+          <p className="text-xs font-medium uppercase tracking-admin-label text-muted-foreground">{title}</p>
+          <p className="text-3xl font-semibold tracking-tight text-card-foreground">{value}</p>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
-        <div className={`flex h-11 w-11 items-center justify-center rounded-lg border ${toneClasses[tone]}`}>
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border ${toneClasses[tone]}`}>
           <Icon className="h-5 w-5" />
         </div>
       </div>

@@ -12,6 +12,7 @@ const postRoutes = require("./modules/post/routes/post.routes");
 const configRoutes = require("./modules/config/routes/config.routes");
 const categoryRoutes = require("./modules/category/routes/category.routes");
 const mediaRoutes = require("./modules/media/routes/media.routes");
+const userRoutes = require("./modules/user/routes/user.routes");
 const setupSwagger = require("./docs/swagger");
 const errorMiddleware = require("./middleware/error.middleware");
 const { buildErrorBody } = require("./middleware/error.middleware");
@@ -132,6 +133,7 @@ const createApp = () => {
   app.use("/api/categories", categoryRoutes);
   app.use("/api/config", configRoutes);
   app.use("/api/media", mediaRoutes);
+  app.use("/api/users", userRoutes);
   if (env.SWAGGER_ENABLED) {
     setupSwagger(app);
   }

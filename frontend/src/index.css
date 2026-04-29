@@ -51,6 +51,37 @@
     --sidebar-accent-foreground: 0 0% 12%;
     --sidebar-border: 0 0% 88%;
     --sidebar-ring: 0 85% 40%;
+
+    /* Admin / CMS dashboard — spacing & surfaces */
+    --admin-radius-card: 0.75rem;
+    --admin-pad-card: 1.25rem;
+    --admin-pad-card-sm: 1rem;
+    --admin-gap-section: 1.5rem;
+    --admin-gap-grid: 1rem;
+    --admin-gap-stack: 0.75rem;
+    --admin-gap-tight: 0.5rem;
+
+    --admin-border: 214 32% 91%;
+    --admin-border-muted: 213 27% 84%;
+    --admin-border-empty: 215 14% 65%;
+    --admin-surface-muted: 210 40% 98%;
+
+    /* Stat card icon accents (semantic tones) */
+    --admin-stat-primary-border: 0 72% 90%;
+    --admin-stat-primary-bg: 0 86% 97%;
+    --admin-stat-primary-fg: 0 63% 31%;
+
+    --admin-stat-success-border: 152 38% 84%;
+    --admin-stat-success-bg: 152 76% 96%;
+    --admin-stat-success-fg: 160 84% 24%;
+
+    --admin-stat-warning-border: 48 96% 77%;
+    --admin-stat-warning-bg: 48 100% 96%;
+    --admin-stat-warning-fg: 32 81% 29%;
+
+    --admin-stat-secondary-border: 214 32% 91%;
+    --admin-stat-secondary-bg: 210 40% 98%;
+    --admin-stat-secondary-fg: 215 19% 35%;
   }
 }
 
@@ -87,5 +118,28 @@
   }
   .text-olive {
     color: hsl(var(--olive));
+  }
+}
+
+@layer components {
+  /** Shared admin surfaces — use with dashboard + AdminSectionCard content */
+  .admin-card {
+    @apply rounded-admin-card border border-admin-border bg-card p-admin-card shadow-sm;
+  }
+
+  .admin-card-sm {
+    @apply rounded-admin-card border border-admin-border bg-card p-admin-card-sm shadow-sm;
+  }
+
+  .admin-inset {
+    @apply flex items-start gap-admin-tight rounded-admin-card border border-admin-border bg-admin-surface-muted p-admin-card-sm;
+  }
+
+  .admin-footnote {
+    @apply mt-4 inline-flex items-center gap-admin-tight text-xs text-muted-foreground;
+  }
+
+  .admin-empty {
+    @apply flex flex-col items-stretch gap-admin-stack rounded-admin-card border border-dashed border-admin-border-empty p-admin-card-sm text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between;
   }
 }

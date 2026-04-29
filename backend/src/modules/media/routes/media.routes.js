@@ -7,7 +7,7 @@ const multer = require("multer");
 const authMiddleware = require("../../../middleware/auth.middleware");
 const requireRole = require("../../../middleware/role.middleware");
 const { UserRole } = require("../../../domain/roles");
-const { uploadMedia, listMedia } = require("../controller/media.controller");
+const { uploadMedia, listMedia, deleteMedia } = require("../controller/media.controller");
 const { BadRequestError } = require("../../../utils/errors");
 
 const router = express.Router();
@@ -44,5 +44,6 @@ const upload = multer({
 // Admin/CMS
 router.get("/", authMiddleware, requireRole(UserRole.EDITOR), listMedia);
 router.post("/upload", authMiddleware, requireRole(UserRole.EDITOR), upload.single("file"), uploadMedia);
+router.delete("/:id", authMiddleware, requireRole(UserRole.EDITOR), deleteMedia);
 
 module.exports = router;

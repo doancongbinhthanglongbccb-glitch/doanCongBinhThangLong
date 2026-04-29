@@ -3,6 +3,7 @@ const Post = require("../../../models/Post");
 const { BadRequestError } = require("../../../utils/errors");
 const { buildPostFilter, buildSort, normalizeListQuery, buildSlug } = require("../domain/post-utils");
 const Category = require("../../../models/Category");
+const PostRevision = require("../../../models/PostRevision");
 
 const listPosts = async ({ includeDrafts = false, ...rawQuery } = {}) => {
   const query = normalizeListQuery(rawQuery);
@@ -30,7 +31,9 @@ const listPosts = async ({ includeDrafts = false, ...rawQuery } = {}) => {
       .sort(sort)
       .skip((query.page - 1) * query.limit)
       .limit(query.limit)
-      .select("title slug status author createdAt updatedAt publishedAt thumbnail excerpt seoTitle seoDescription viewCount categoryIds")
+      .select(
+        "title slug status workflowStatus author createdAt updatedAt publishedAt thumbnail excerpt seoTitle seoDescription viewCount categoryIds revision review"
+      )
       .populate("author", "username role")
       .lean(),
     Post.countDocuments(filter),
@@ -53,6 +56,14 @@ const findById = async (postId) => {
   }
 
   return Post.findById(postId).populate("author", "username role");
+};
+
+const findByIdLean = async (postId) => {
+  if (!mongoose.Types.ObjectId.isValid(postId)) {
+    throw new BadRequestError("Invalid post id");
+  }
+
+  return Post.findById(postId).populate("author", "username role").lean();
 };
 
 const findBySlug = async (slug) => {
@@ -109,9 +120,117 @@ const deleteById = async (postId) => {
   return Post.findByIdAndDelete(postId);
 };
 
+const snapshotFromPost = (post) => ({
+  title: post.title,
+  slug: post.slug,
+  content: post.content,
+  thumbnail: post.thumbnail || "",
+  categoryIds: post.categoryIds || [],
+  excerpt: post.excerpt || "",
+  seoTitle: post.seoTitle || "",
+  seoDescription: post.seoDescription || "",
+  status: post.status,
+  workflowStatus: post.workflowStatus || (post.status === "published" ? "published" : post.status),
+  publishedAt: post.publishedAt || null,
+});
+
+const listRevisions = async (postId) => {
+  if (!mongoose.Types.ObjectId.isValid(postId)) {
+    throw new BadRequestError("Invalid post id");
+  }
+
+  return PostRevision.find({ postId })
+    .sort({ version: -1 })
+    .select("version action note createdAt actorId")
+    .populate("actorId", "username role")
+    .lean();
+};
+
+const findRevisionById = async (postId, revisionId) => {
+  if (!mongoose.Types.ObjectId.isValid(postId)) {
+    throw new BadRequestError("Invalid post id");
+  }
+  if (!mongoose.Types.ObjectId.isValid(revisionId)) {
+    throw new BadRequestError("Invalid revision id");
+  }
+
+  return PostRevision.findOne({ _id: revisionId, postId })
+    .populate("actorId", "username role")
+    .lean();
+};
+
+const restoreRevision = async ({ postId, revisionId, actorId }) => {
+  const rev = await findRevisionById(postId, revisionId);
+  if (!rev) {
+    throw new BadRequestError("Revision not found", { revisionId }, "REVISION_NOT_FOUND");
+  }
+
+  // Restore snapshot onto current post. Keep safety: do not restore viewCount, author, timestamps.
+  const patch = {
+    title: rev.snapshot.title,
+    slug: rev.snapshot.slug,
+    content: rev.snapshot.content,
+    thumbnail: rev.snapshot.thumbnail || "",
+    categoryIds: rev.snapshot.categoryIds || [],
+    excerpt: rev.snapshot.excerpt || "",
+    seoTitle: rev.snapshot.seoTitle || "",
+    seoDescription: rev.snapshot.seoDescription || "",
+    status: rev.snapshot.status,
+    workflowStatus: rev.snapshot.workflowStatus,
+    publishedAt: rev.snapshot.publishedAt || null,
+  };
+
+  await Post.findByIdAndUpdate(postId, patch, { new: false });
+
+  // Create a new revision capturing the restored state
+  await createRevisionForPost({ postId, actorId, action: "restore", note: `restore:${rev.version}` });
+
+  return rev;
+};
+
+const createRevisionForPost = async ({
+  postId,
+  actorId,
+  action,
+  note = "",
+  session = null,
+}) => {
+  const post = await Post.findById(postId).session(session || undefined);
+  if (!post) {
+    throw new BadRequestError("Invalid post id");
+  }
+
+  const current = post.revision?.current || 0;
+  const nextVersion = current + 1;
+
+  await PostRevision.create(
+    [
+      {
+        postId: post._id,
+        version: nextVersion,
+        actorId,
+        action,
+        note,
+        snapshot: snapshotFromPost(post),
+      },
+    ],
+    session ? { session } : undefined
+  );
+
+  const revisionPatch = { "revision.current": nextVersion };
+  if (action === "publish") {
+    revisionPatch["revision.lastPublished"] = nextVersion;
+  }
+
+  await Post.updateOne({ _id: post._id }, { $set: revisionPatch }).session(session || undefined);
+
+  return nextVersion;
+};
+
 module.exports = {
   listPosts,
   findById,
+  findByIdLean,
   findBySlug,
   findPublishedBySlug,
   findAll,
@@ -119,4 +238,8 @@ module.exports = {
   updateById,
   ensureUniqueSlug,
   deleteById,
+  createRevisionForPost,
+  listRevisions,
+  findRevisionById,
+  restoreRevision,
 };

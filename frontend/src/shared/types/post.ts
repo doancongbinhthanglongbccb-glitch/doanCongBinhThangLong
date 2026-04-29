@@ -1,4 +1,14 @@
-export type PostStatus = "draft" | "published";
+export type PostStatus = "draft" | "published" | "archived";
+
+export type WorkflowStatus = "draft" | "pending" | "approved" | "published" | "archived";
+
+export type PostReview = {
+  submittedAt?: string | null;
+  submittedBy?: { id: string; username?: string } | string | null;
+  reviewedAt?: string | null;
+  reviewedBy?: { id: string; username?: string } | string | null;
+  decisionNote?: string;
+};
 
 export interface PostAuthor {
   id: string;
@@ -15,6 +25,17 @@ export interface Post {
   thumbnail?: string;
   status: PostStatus;
   publishedAt?: string;
+  workflowStatus?: WorkflowStatus;
+  review?: PostReview;
+  revision?: {
+    current?: number;
+    lastPublished?: number;
+  };
+  excerpt?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  viewCount?: number;
+  categoryIds?: string[];
   author?: PostAuthor;
   createdAt?: string;
   updatedAt?: string;
@@ -29,6 +50,12 @@ export type CreatePostInput = Pick<Post, "title" | "content"> & {
   slug?: string;
   thumbnail?: string;
   status?: PostStatus;
+  excerpt?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  categoryIds?: string[];
 };
 
-export type UpdatePostInput = Partial<Pick<Post, "title" | "slug" | "content" | "thumbnail" | "status">>;
+export type UpdatePostInput = Partial<
+  Pick<Post, "title" | "slug" | "content" | "thumbnail" | "status" | "excerpt" | "seoTitle" | "seoDescription" | "categoryIds">
+>;

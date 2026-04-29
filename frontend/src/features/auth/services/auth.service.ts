@@ -107,6 +107,35 @@ export const login = async (payload: LoginPayload): Promise<AuthResponse> => {
   };
 };
 
+export const loginWithGoogle = async (credential: string): Promise<AuthResponse> => {
+  const response = await axios.post(
+    `${API_BASE_URL}${ApiEndpoints.authGoogle}`,
+    { credential },
+    { withCredentials: true }
+  );
+
+  const accessToken = response.data?.accessToken || response.data?.token || "";
+  if (!accessToken) {
+    throw new Error("Google login response does not contain accessToken");
+  }
+
+  setTokens({ accessToken });
+  setAuthUser(response.data?.user || null);
+
+  return {
+    accessToken,
+    user: response.data?.user || null,
+  };
+};
+
+/** True if the httpOnly refresh cookie is present (does not validate JWT). */
+export const canRefreshSession = async (): Promise<boolean> => {
+  const response = await axios.get(`${API_BASE_URL}${ApiEndpoints.authSession}`, {
+    withCredentials: true,
+  });
+  return Boolean(response.data?.canRefresh);
+};
+
 export const refreshAccessToken = async (): Promise<string> => {
   const response = await axios.post(
     `${API_BASE_URL}${ApiEndpoints.authRefresh}`,
@@ -143,6 +172,11 @@ export const ensureSession = async (): Promise<boolean> => {
   }
 
   try {
+    const canRefresh = await canRefreshSession();
+    if (!canRefresh) {
+      clearTokens();
+      return false;
+    }
     await refreshAccessToken();
     return true;
   } catch {

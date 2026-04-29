@@ -38,8 +38,7 @@ export default function MediaUploadField({
       }
       onChange(url);
       toast.success("Upload ảnh thành công");
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast.error("Upload ảnh thất bại");
     } finally {
       setUploading(false);

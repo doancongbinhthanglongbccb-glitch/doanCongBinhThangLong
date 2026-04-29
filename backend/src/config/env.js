@@ -29,6 +29,11 @@ const envSchema = z.object({
   SENTRY_ENVIRONMENT: z.string().trim().optional().or(z.literal("")),
   SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
   SWAGGER_ENABLED: booleanString.optional(),
+
+  // Google Login (optional)
+  GOOGLE_CLIENT_ID: z.string().trim().optional().or(z.literal("")),
+  GOOGLE_ALLOWED_EMAILS: z.string().trim().optional().or(z.literal("")),
+  GOOGLE_ALLOWED_DOMAIN: z.string().trim().optional().or(z.literal("")),
 });
 
 const parsedEnv = envSchema.parse(process.env);

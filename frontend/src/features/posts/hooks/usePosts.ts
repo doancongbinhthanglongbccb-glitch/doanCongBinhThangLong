@@ -164,8 +164,8 @@ export const usePostsFeed = () => {
     try {
       const response = await postsService.getPublicPosts({ page: 1, limit: 10 });
       setPosts(response.data);
-    } catch (err) {
-      console.error("Failed to load posts:", err);
+    } catch {
+      /* feed errors are non-fatal; list stays empty */
     }
   }, []);
 

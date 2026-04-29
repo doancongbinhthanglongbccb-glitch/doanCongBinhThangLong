@@ -20,6 +20,20 @@ const login = asyncHandler(async (req, res) => {
   });
 });
 
+const googleLogin = asyncHandler(async (req, res) => {
+  const result = await authService.googleLogin(req.body, {
+    ip: req.ip,
+    requestId: req.requestId,
+  });
+
+  setRefreshTokenCookie(res, result.refreshToken);
+
+  return res.status(200).json({
+    accessToken: result.accessToken,
+    user: result.user,
+  });
+});
+
 const refresh = asyncHandler(async (req, res) => {
   const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
   const result = await authService.refresh(refreshToken, {
@@ -47,8 +61,16 @@ const logout = asyncHandler(async (req, res) => {
   return res.status(200).json(result);
 });
 
+/** Lightweight hint so the SPA can skip POST /refresh when no cookie exists (avoids noisy 400 in dev tools). */
+const sessionHint = asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
+  return res.status(200).json({ canRefresh: Boolean(refreshToken) });
+});
+
 module.exports = {
   login,
+  googleLogin,
   refresh,
   logout,
+  sessionHint,
 };

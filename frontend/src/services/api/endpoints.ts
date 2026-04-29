@@ -1,5 +1,7 @@
 export const ApiEndpoints = {
   authLogin: "/api/auth/login",
+  authGoogle: "/api/auth/google",
+  authSession: "/api/auth/session",
   authRefresh: "/api/auth/refresh",
   authLogout: "/api/auth/logout",
   config: "/api/config",
@@ -11,7 +13,18 @@ export const ApiEndpoints = {
   mediaUpload: "/api/media/upload",
   posts: "/api/posts",
   cmsPosts: "/api/posts/cms",
+  cmsPostById: (id: string) => `/api/posts/cms/${id}`,
+  postRevisions: (id: string) => `/api/posts/cms/${id}/revisions`,
+  postRevisionById: (id: string, revId: string) => `/api/posts/cms/${id}/revisions/${revId}`,
+  postRevisionRestore: (id: string, revId: string) => `/api/posts/cms/${id}/revisions/${revId}/restore`,
   postById: (id: string) => `/api/posts/${id}`,
   postPublish: (id: string) => `/api/posts/${id}/publish`,
+  postSubmit: (id: string) => `/api/posts/${id}/submit`,
+  postApprove: (id: string) => `/api/posts/${id}/approve`,
+  postReject: (id: string) => `/api/posts/${id}/reject`,
+  postUnpublish: (id: string) => `/api/posts/${id}/unpublish`,
   postBySlug: (slug: string) => `/api/posts/${slug}`,
+
+  users: "/api/users",
+  userRole: (id: string) => `/api/users/${encodeURIComponent(id)}/role`,
 } as const;

@@ -16,6 +16,7 @@ type BackendPost = {
   content: string;
   thumbnail?: string;
   status?: "draft" | "published" | "archived";
+  workflowStatus?: "draft" | "pending" | "approved" | "published" | "archived";
   publishedAt?: string;
   excerpt?: string;
   seoTitle?: string;
@@ -58,6 +59,7 @@ const mapPost = (item: BackendPost): Post => ({
   thumbnail: item.thumbnail || "",
   image: item.thumbnail || "",
   status: item.status || "draft",
+  workflowStatus: item.workflowStatus,
   publishedAt: item.publishedAt,
   date: formatDate(item.publishedAt || item.createdAt),
   // Legacy label kept for old UI, but no longer hardcoded.

@@ -65,6 +65,16 @@ describe("Auth and post flows", () => {
     expect(authService.login).toHaveBeenCalledTimes(1);
   });
 
+  test("GET /api/auth/session returns canRefresh from cookie presence", async () => {
+    const empty = await request(app).get("/api/auth/session");
+    expect(empty.status).toBe(200);
+    expect(empty.body).toEqual({ canRefresh: false });
+
+    const withCookie = await request(app).get("/api/auth/session").set("Cookie", ["refreshToken=x"]);
+    expect(withCookie.status).toBe(200);
+    expect(withCookie.body).toEqual({ canRefresh: true });
+  });
+
   test("POST /api/auth/refresh reads cookie and rotates refresh cookie", async () => {
     authService.refresh.mockResolvedValue({
       accessToken: "next-access-token",
