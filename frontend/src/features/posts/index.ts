@@ -5,6 +5,7 @@ export { default as ActionBar } from "@/apps/admin/components/ActionBar";
 export { default as PublicPostsHomePage } from "./pages/HomePage";
 export { default as PublicPostsSectionPage } from "./pages/SectionPage";
 export { default as CmsPostsPage } from "./pages/CmsPostsPage";
+export { default as PostEditorPage } from "./pages/PostEditorPage";
 
 // Hooks
 export { usePosts, usePost, usePostsFeed } from "./hooks/usePosts";

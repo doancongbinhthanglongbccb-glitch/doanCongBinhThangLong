@@ -4,6 +4,12 @@ const { buildSlug } = require("../domain/post-utils");
 const postRepository = require("../repository/post.repository");
 const mongoose = require("mongoose");
 
+const statusToWorkflow = (status) => {
+  if (status === "published") return "published";
+  if (status === "archived") return "archived";
+  return "draft";
+};
+
 const getPublishedPosts = async (query) => {
   return postRepository.listPosts({ ...query, includeDrafts: false });
 };
@@ -26,6 +32,21 @@ const getAllCmsPosts = async () => {
   return postRepository.findAll();
 };
 
+const getCmsPostById = async (postId, user) => {
+  const post = await postRepository.findByIdLean(postId);
+  if (!post) {
+    throw new NotFoundError("Post not found");
+  }
+
+  const isAdmin = user.role === "admin";
+  const isEditorOwner = user.role === "editor" && String(post.author?._id || post.author) === String(user.userId);
+  if (!isAdmin && !isEditorOwner) {
+    throw new ForbiddenError("You can only view your own posts");
+  }
+
+  return post;
+};
+
 const createPost = async (payload, user, context = {}) => {
   const title = (payload?.title || "").trim();
   const content = (payload?.content || "").trim();
@@ -36,6 +57,7 @@ const createPost = async (payload, user, context = {}) => {
 
   const providedStatus = payload?.status;
   const status = user.role === "admin" && providedStatus === "published" ? "published" : "draft";
+  const workflowStatus = statusToWorkflow(status);
   const baseSlug = buildSlug(payload?.slug || title);
 
   if (!baseSlug) {
@@ -69,7 +91,15 @@ const createPost = async (payload, user, context = {}) => {
     viewCount: 0,
     author: user.userId,
     status,
+    workflowStatus,
     publishedAt: status === "published" ? new Date() : null,
+  });
+
+  await postRepository.createRevisionForPost({
+    postId: createdPost._id,
+    actorId: user.userId,
+    action: "create",
+    note: "",
   });
 
   logger.info(
@@ -175,9 +205,17 @@ const updatePost = async (postId, payload, user, context = {}) => {
 
     updates.status = payload.status;
     updates.publishedAt = payload.status === "published" ? post.publishedAt || new Date() : null;
+    updates.workflowStatus = statusToWorkflow(payload.status);
   }
 
   const updatedPost = await postRepository.updateById(postId, updates);
+
+  await postRepository.createRevisionForPost({
+    postId,
+    actorId: user.userId,
+    action: "edit",
+    note: "",
+  });
 
   logger.info(
     {
@@ -193,15 +231,163 @@ const updatePost = async (postId, payload, user, context = {}) => {
   return updatedPost;
 };
 
+const submitPostForReview = async (postId, user, context = {}) => {
+  const post = await postRepository.findById(postId);
+  if (!post) {
+    throw new NotFoundError("Post not found");
+  }
+
+  const isAdmin = user.role === "admin";
+  const isEditorOwner = user.role === "editor" && String(post.author) === String(user.userId);
+  if (!isAdmin && !isEditorOwner) {
+    throw new ForbiddenError("You can only submit your own posts");
+  }
+
+  const currentWorkflow = post.workflowStatus || statusToWorkflow(post.status);
+  if (!["draft", "rejected"].includes(currentWorkflow)) {
+    throw new BadRequestError(
+      "Only draft or rejected posts can be submitted for review",
+      { workflowStatus: currentWorkflow },
+      "INVALID_WORKFLOW_TRANSITION"
+    );
+  }
+
+  const updatedPost = await postRepository.updateById(postId, {
+    workflowStatus: "pending",
+    "review.submittedAt": new Date(),
+    "review.submittedBy": user.userId,
+    "review.reviewedAt": null,
+    "review.reviewedBy": null,
+    "review.decisionNote": "",
+  });
+
+  await postRepository.createRevisionForPost({
+    postId,
+    actorId: user.userId,
+    action: "submit",
+    note: "",
+  });
+
+  logger.info(
+    {
+      action: "SUBMIT_POST",
+      endpoint: context.endpoint || null,
+      userId: user.userId,
+      targetId: String(postId),
+    },
+    "Post submitted for review"
+  );
+
+  return updatedPost;
+};
+
+const approvePost = async (postId, user, context = {}) => {
+  const post = await postRepository.findById(postId);
+  if (!post) {
+    throw new NotFoundError("Post not found");
+  }
+
+  const currentWorkflow = post.workflowStatus || statusToWorkflow(post.status);
+  if (currentWorkflow !== "pending") {
+    throw new BadRequestError("Only pending posts can be approved", { workflowStatus: currentWorkflow }, "INVALID_WORKFLOW_TRANSITION");
+  }
+
+  const updatedPost = await postRepository.updateById(postId, {
+    workflowStatus: "approved",
+    "review.reviewedAt": new Date(),
+    "review.reviewedBy": user.userId,
+  });
+
+  await postRepository.createRevisionForPost({
+    postId,
+    actorId: user.userId,
+    action: "approve",
+    note: "",
+  });
+
+  logger.info(
+    {
+      action: "APPROVE_POST",
+      endpoint: context.endpoint || null,
+      userId: user.userId,
+      targetId: String(postId),
+    },
+    "Post approved"
+  );
+
+  return updatedPost;
+};
+
+const rejectPost = async (postId, payload, user, context = {}) => {
+  const note = String(payload?.note || "").trim();
+  if (!note) {
+    throw new BadRequestError("Rejection note is required");
+  }
+
+  const post = await postRepository.findById(postId);
+  if (!post) {
+    throw new NotFoundError("Post not found");
+  }
+
+  const currentWorkflow = post.workflowStatus || statusToWorkflow(post.status);
+  if (currentWorkflow !== "pending") {
+    throw new BadRequestError("Only pending posts can be rejected", { workflowStatus: currentWorkflow }, "INVALID_WORKFLOW_TRANSITION");
+  }
+
+  const updatedPost = await postRepository.updateById(postId, {
+    workflowStatus: "rejected",
+    "review.reviewedAt": new Date(),
+    "review.reviewedBy": user.userId,
+    "review.decisionNote": note,
+  });
+
+  await postRepository.createRevisionForPost({
+    postId,
+    actorId: user.userId,
+    action: "reject",
+    note,
+  });
+
+  logger.info(
+    {
+      action: "REJECT_POST",
+      endpoint: context.endpoint || null,
+      userId: user.userId,
+      targetId: String(postId),
+    },
+    "Post rejected"
+  );
+
+  return updatedPost;
+};
+
 const publishPost = async (postId, user, context = {}) => {
   const post = await postRepository.findById(postId);
   if (!post) {
     throw new NotFoundError("Post not found");
   }
 
+  const currentWorkflow = post.workflowStatus || statusToWorkflow(post.status);
+  // Simplified workflow for CMS v1: publish only from pending.
+  if (currentWorkflow !== "pending") {
+    throw new BadRequestError(
+      "Only pending posts can be published",
+      { workflowStatus: currentWorkflow },
+      "INVALID_WORKFLOW_TRANSITION"
+    );
+  }
+
   const updatedPost = await postRepository.updateById(postId, {
     status: "published",
+    workflowStatus: "published",
     publishedAt: new Date(),
+  });
+
+  await postRepository.createRevisionForPost({
+    postId,
+    actorId: user?.userId || null,
+    action: "publish",
+    note: "",
   });
 
   logger.info(
@@ -212,6 +398,43 @@ const publishPost = async (postId, user, context = {}) => {
       targetId: String(postId),
     },
     "Post published"
+  );
+
+  return updatedPost;
+};
+
+const unpublishPost = async (postId, user, context = {}) => {
+  const post = await postRepository.findById(postId);
+  if (!post) {
+    throw new NotFoundError("Post not found");
+  }
+
+  const currentWorkflow = post.workflowStatus || statusToWorkflow(post.status);
+  if (currentWorkflow !== "published") {
+    throw new BadRequestError("Only published posts can be unpublished", { workflowStatus: currentWorkflow }, "INVALID_WORKFLOW_TRANSITION");
+  }
+
+  const updatedPost = await postRepository.updateById(postId, {
+    status: "draft",
+    workflowStatus: "draft",
+    publishedAt: null,
+  });
+
+  await postRepository.createRevisionForPost({
+    postId,
+    actorId: user.userId,
+    action: "unpublish",
+    note: "",
+  });
+
+  logger.info(
+    {
+      action: "UNPUBLISH_POST",
+      endpoint: context.endpoint || null,
+      userId: user.userId,
+      targetId: String(postId),
+    },
+    "Post unpublished"
   );
 
   return updatedPost;
@@ -234,13 +457,64 @@ const deletePost = async (postId, user, context = {}) => {
   );
 };
 
+const listRevisions = async (postId, user) => {
+  // Editors can view revisions for their own posts; admin can view all.
+  const post = await postRepository.findById(postId);
+  if (!post) throw new NotFoundError("Post not found");
+
+  const isAdmin = user.role === "admin";
+  const isEditorOwner = user.role === "editor" && String(post.author) === String(user.userId);
+  if (!isAdmin && !isEditorOwner) {
+    throw new ForbiddenError("You can only view revisions of your own posts");
+  }
+
+  return postRepository.listRevisions(postId);
+};
+
+const getRevisionDetail = async (postId, revId, user) => {
+  // Same permission as listRevisions
+  await listRevisions(postId, user);
+  const revision = await postRepository.findRevisionById(postId, revId);
+  if (!revision) throw new NotFoundError("Revision not found");
+  return revision;
+};
+
+const restoreRevision = async (postId, revId, user, context = {}) => {
+  if (user.role !== "admin") {
+    throw new ForbiddenError("Only admin can restore revisions");
+  }
+
+  const restored = await postRepository.restoreRevision({ postId, revisionId: revId, actorId: user.userId });
+
+  logger.info(
+    {
+      action: "RESTORE_REVISION",
+      endpoint: context.endpoint || null,
+      userId: user.userId,
+      targetId: String(postId),
+      revisionId: String(revId),
+    },
+    "Revision restored"
+  );
+
+  return restored;
+};
+
 module.exports = {
   getPublishedPosts,
   getPublishedPostBySlug,
   getCmsPosts,
   getAllCmsPosts,
+  getCmsPostById,
   createPost,
   updatePost,
+  submitPostForReview,
+  approvePost,
+  rejectPost,
   publishPost,
+  unpublishPost,
   deletePost,
+  listRevisions,
+  getRevisionDetail,
+  restoreRevision,
 };

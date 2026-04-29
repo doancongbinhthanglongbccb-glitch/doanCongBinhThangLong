@@ -54,6 +54,9 @@ services:
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
     networks:
       - internal
+    volumes:
+      # Persist uploaded media files across restarts
+      - uploads_data:/app/uploads
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:5000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));\""]
       interval: 10s
@@ -67,6 +70,7 @@ services:
       args:
         VITE_API_URL: /api
         VITE_API_BASE_URL: /api
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
     restart: on-failure:5
     mem_limit: 128m
     cpus: "0.25"
@@ -184,6 +188,7 @@ services:
 volumes:
   mongodb_data:
   mongodb_backups:
+  uploads_data:
   certbot_www:
   letsencrypt:
 

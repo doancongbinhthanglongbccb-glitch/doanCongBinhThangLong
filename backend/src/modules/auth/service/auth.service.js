@@ -1,8 +1,11 @@
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
 const User = require("../../../models/User");
 const { hashToken } = require("../../../utils/token");
 const logger = require("../../../utils/logger");
 const { BadRequestError, ForbiddenError, UnauthorizedError } = require("../../../utils/errors");
+const { env } = require("../../../config/env");
+const { OAuth2Client } = require("google-auth-library");
 const {
   createAccessToken,
   createRefreshToken,
@@ -10,6 +13,22 @@ const {
   verifyRefreshToken,
 } = require("../domain/token");
 const refreshTokenRepository = require("../repository/refresh-token.repository");
+
+const getGoogleClient = (() => {
+  let client = null;
+  return () => {
+    const clientId = (env.GOOGLE_CLIENT_ID || "").trim();
+    if (!clientId) return null;
+    if (!client) client = new OAuth2Client(clientId);
+    return client;
+  };
+})();
+
+const parseAllowList = (value) =>
+  String(value || "")
+    .split(",")
+    .map((v) => v.trim().toLowerCase())
+    .filter(Boolean);
 
 const login = async (payload, context = {}) => {
   const username = (payload?.username || payload?.email || "").trim();
@@ -83,6 +102,90 @@ const login = async (payload, context = {}) => {
     },
     "Login success"
   );
+
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: String(user._id),
+      username: user.username,
+      role: user.role,
+    },
+  };
+};
+
+const googleLogin = async (payload, context = {}) => {
+  const credential = (payload?.credential || "").trim();
+  if (!credential) {
+    throw new BadRequestError("Google credential is required");
+  }
+
+  const googleClient = getGoogleClient();
+  if (!googleClient) {
+    throw new BadRequestError("Google login is not configured");
+  }
+
+  const ticket = await googleClient.verifyIdToken({
+    idToken: credential,
+    audience: (env.GOOGLE_CLIENT_ID || "").trim(),
+  });
+
+  const tokenPayload = ticket.getPayload();
+  const email = (tokenPayload?.email || "").toLowerCase().trim();
+  const emailVerified = Boolean(tokenPayload?.email_verified);
+
+  if (!email || !emailVerified) {
+    throw new UnauthorizedError("Google account email is not verified");
+  }
+
+  // Restrict signup surface in production.
+  const allowedEmails = parseAllowList(env.GOOGLE_ALLOWED_EMAILS);
+  const allowedDomain = (env.GOOGLE_ALLOWED_DOMAIN || "").trim().toLowerCase();
+
+  if (allowedEmails.length > 0) {
+    if (!allowedEmails.includes(email)) {
+      throw new ForbiddenError("Google account is not allowed");
+    }
+  } else if (allowedDomain) {
+    if (!email.endsWith(`@${allowedDomain}`)) {
+      throw new ForbiddenError("Google account domain is not allowed");
+    }
+  } else if (env.NODE_ENV === "production") {
+    throw new ForbiddenError("Google login requires allowlist configuration");
+  }
+
+  // We map Google users to local `User` by username=email.
+  let user = await User.findOne({ username: email });
+
+  if (!user) {
+    // Create a local user with a random password (password login is not the goal here).
+    const randomPassword = crypto.randomBytes(32).toString("hex");
+    user = await User.create({
+      username: email,
+      password: randomPassword,
+      role: "editor",
+    });
+  }
+
+  if (!user.role || !["admin", "editor"].includes(user.role)) {
+    throw new ForbiddenError("Only admin and editor accounts can sign in");
+  }
+
+  logger.info(
+    {
+      action: "GOOGLE_LOGIN_SUCCESS",
+      userId: String(user._id),
+      ip: context.ip || null,
+      requestId: context.requestId || null,
+    },
+    "Google login success"
+  );
+
+  const authPayload = { userId: String(user._id), role: user.role };
+  const accessToken = createAccessToken(authPayload);
+  const refreshToken = createRefreshToken(authPayload);
+  const expiresAt = getRefreshTokenExpiryDate(refreshToken);
+  await refreshTokenRepository.create({ userId: user._id, refreshToken, expiresAt });
 
   return {
     accessToken,
@@ -189,6 +292,7 @@ const logout = async (refreshToken, context = {}) => {
 
 module.exports = {
   login,
+  googleLogin,
   refresh,
   logout,
 };

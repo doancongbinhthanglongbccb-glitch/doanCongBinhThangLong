@@ -23,10 +23,12 @@ export const ROUTES = {
   ADMIN_DASHBOARD: "/admin/dashboard",
   ADMIN_POSTS: "/admin/posts",
   ADMIN_CONFIG: "/admin/config",
+  ADMIN_USERS: "/admin/users",
 } as const;
 
 export const API_ROUTES = {
   AUTH_LOGIN: "/api/auth/login",
+  AUTH_SESSION: "/api/auth/session",
   AUTH_REFRESH: "/api/auth/refresh",
   AUTH_LOGOUT: "/api/auth/logout",
 

@@ -67,11 +67,51 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        admin: {
+          border: "hsl(var(--admin-border))",
+          "border-muted": "hsl(var(--admin-border-muted))",
+          "border-empty": "hsl(var(--admin-border-empty))",
+          "surface-muted": "hsl(var(--admin-surface-muted))",
+          stat: {
+            primary: {
+              border: "hsl(var(--admin-stat-primary-border))",
+              bg: "hsl(var(--admin-stat-primary-bg))",
+              fg: "hsl(var(--admin-stat-primary-fg))",
+            },
+            success: {
+              border: "hsl(var(--admin-stat-success-border))",
+              bg: "hsl(var(--admin-stat-success-bg))",
+              fg: "hsl(var(--admin-stat-success-fg))",
+            },
+            warning: {
+              border: "hsl(var(--admin-stat-warning-border))",
+              bg: "hsl(var(--admin-stat-warning-bg))",
+              fg: "hsl(var(--admin-stat-warning-fg))",
+            },
+            secondary: {
+              border: "hsl(var(--admin-stat-secondary-border))",
+              bg: "hsl(var(--admin-stat-secondary-bg))",
+              fg: "hsl(var(--admin-stat-secondary-fg))",
+            },
+          },
+        },
+      },
+      spacing: {
+        "admin-card": "var(--admin-pad-card)",
+        "admin-card-sm": "var(--admin-pad-card-sm)",
+        "admin-section": "var(--admin-gap-section)",
+        "admin-grid": "var(--admin-gap-grid)",
+        "admin-stack": "var(--admin-gap-stack)",
+        "admin-tight": "var(--admin-gap-tight)",
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        "admin-card": "var(--admin-radius-card)",
+      },
+      letterSpacing: {
+        "admin-label": "0.18em",
       },
       keyframes: {
         "accordion-down": {

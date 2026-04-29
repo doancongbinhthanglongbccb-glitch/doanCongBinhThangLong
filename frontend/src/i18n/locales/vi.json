@@ -7,7 +7,8 @@
     "menu": {
       "dashboard": "Bảng điều khiển",
       "postManager": "Quản lý bài viết",
-      "configManager": "Quản lý cấu hình"
+      "configManager": "Quản lý cấu hình",
+      "userManager": "Quản lý người dùng"
     },
     "layout": {
       "appTitle": "QUẢN TRỊ NỘI DUNG",
@@ -102,12 +103,19 @@
       "moveToDraftError": "Không thể chuyển bài viết về nháp."
     },
     "dashboard": {
+      "heroEyebrow": "Trang tổng quan",
+      "heroTitle": "Theo dõi và điều phối nội dung",
+      "heroSubtitle": "Xem nhanh số liệu các khu vực, checklist vận hành và bài viết cập nhật gần đây.",
+      "ctaManagePosts": "Danh sách bài viết",
+      "ctaNewPost": "Tạo bài mới",
+      "viewAllPosts": "Xem tất cả",
       "title": "Tổng quan",
       "description": "Bảng điều khiển hỗ trợ theo dõi nhanh tình trạng nội dung.",
       "totalContent": "Tổng nội dung",
       "latestPostsTitle": "Bài viết cập nhật gần đây",
       "latestPostsDesc": "Danh sách các bài mới nhất để điều phối nội dung nhanh hơn.",
       "latestPostsEmpty": "Chưa có bài viết nào.",
+      "latestPostsEmptyCta": "Mở danh sách bài viết",
       "checklistTitle": "Checklist vận hành",
       "checklistItems": [
         "Kiểm tra bài nháp",
@@ -177,13 +185,44 @@
       "saveError": "Không thể lưu Footer.",
       "syncFromMenuNote": "Danh sách liên kết footer được tự động đồng bộ từ menu. Chỉnh ở mục Menu, footer sẽ nhận theo.",
       "noMenuToSync": "Chưa có menu nào để đồng bộ."
+    },
+    "users": {
+      "title": "Quản lý người dùng",
+      "summary": "Tổng {{total}} tài khoản",
+      "searchPlaceholder": "Tìm theo email / username",
+      "search": "Tìm",
+      "roleFilter": "Vai trò",
+      "role": "Vai trò",
+      "roleAll": "Tất cả",
+      "roleAdmin": "Admin",
+      "roleEditor": "Editor",
+      "sort": "Sắp xếp",
+      "sortNewest": "Mới nhất",
+      "sortOldest": "Cũ nhất",
+      "username": "Tài khoản",
+      "createdAt": "Tạo lúc",
+      "actions": "Thao tác",
+      "empty": "Chưa có tài khoản nào.",
+      "you": "Bạn",
+      "prev": "Trang trước",
+      "next": "Trang sau",
+      "pagination": "Trang {{page}} / {{pages}}",
+      "promote": "Nâng quyền",
+      "demote": "Hạ quyền",
+      "updated": "Đã cập nhật quyền",
+      "loadError": "Không thể tải danh sách người dùng.",
+      "updateError": "Không thể cập nhật quyền.",
+      "cannotChangeSelf": "Bạn không thể đổi quyền của chính mình.",
+      "confirmRoleChange": "Đổi quyền của {{username}} sang {{role}}?"
     }
   },
   "auth": {
     "login": {
       "checking": "Đang xác thực...",
       "title": "Hệ thống quản trị nội dung",
-      "subtitle": "Chỉ dành cho cán bộ được phân quyền",
+      "subtitle": "Đăng nhập để quản lý nội dung website.",
+      "googleContinue": "Tiếp tục với Google",
+      "orEmail": "Hoặc bằng email",
       "email": "Email",
       "password": "Mật khẩu",
       "passwordPlaceholder": "Nhập mật khẩu",
@@ -193,7 +232,12 @@
       "submit": "Đăng nhập",
       "submitting": "Đang đăng nhập...",
       "backHome": "Quay về trang chủ",
-      "forgotPassword": "Quên mật khẩu?"
+      "forgotPassword": "Quên mật khẩu?",
+      "google": "Đăng nhập với Google",
+      "errorGoogle": "Đăng nhập Google không thành công.",
+      "errorGoogleNotReady": "Đang tải đăng nhập Google. Thử lại sau vài giây.",
+      "errorGooglePromptNotDisplayed": "Không mở được cửa sổ Google. Kiểm tra trình duyệt hoặc OAuth.",
+      "errorGooglePromptBlocked": "Google từ chối đăng nhập ({{reason}}). Kiểm tra domain trong Google Cloud và Test users."
     }
   },
   "errorBoundary": {

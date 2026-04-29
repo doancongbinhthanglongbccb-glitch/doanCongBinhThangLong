@@ -10,15 +10,15 @@ type AdminSectionCardProps = {
 
 const AdminSectionCard = ({ title, description, children, actions }: AdminSectionCardProps) => {
   return (
-    <Card className="border-slate-200 bg-white shadow-sm">
-      <CardHeader className="space-y-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
+    <Card className="border-admin-border shadow-sm">
+      <CardHeader className="space-y-admin-stack border-b border-admin-border pb-admin-card-sm sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
         <div className="space-y-1">
-          <CardTitle className="text-lg font-semibold text-slate-900">{title}</CardTitle>
-          {description ? <p className="text-sm text-slate-500">{description}</p> : null}
+          <CardTitle className="text-lg font-semibold leading-snug text-card-foreground">{title}</CardTitle>
+          {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
         </div>
-        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+        {actions ? <div className="flex flex-wrap gap-admin-tight">{actions}</div> : null}
       </CardHeader>
-      <CardContent className="p-5">{children}</CardContent>
+      <CardContent className="p-admin-card pt-0">{children}</CardContent>
     </Card>
   );
 };

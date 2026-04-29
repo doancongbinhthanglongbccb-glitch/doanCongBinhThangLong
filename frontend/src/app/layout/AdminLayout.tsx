@@ -26,6 +26,7 @@ type AdminLayoutProps = {
   pageTitle: string;
   breadcrumb?: string[];
   userName?: string;
+  /** Shown only in the sidebar footer (email is not repeated in the header). */
   role?: string;
   children: ReactNode;
 };
@@ -67,9 +68,15 @@ const AdminLayout = ({ menuSections, active, onChange, pageTitle, breadcrumb = [
           </nav>
 
           <div className="mt-auto border-t border-slate-200 p-3">
-            <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm">
-              <p className="font-medium text-slate-900">{userName || t("admin.layout.userFallback")}</p>
-              <p className="mt-1 text-slate-500">{role || t("admin.layout.roleFallback")}</p>
+            <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm">
+              <p className="truncate font-medium text-slate-900" title={userName || t("admin.layout.userFallback")}>
+                {userName || t("admin.layout.userFallback")}
+              </p>
+              {role ? (
+                <p className="mt-0.5 truncate text-xs text-slate-500" title={role}>
+                  {role}
+                </p>
+              ) : null}
             </div>
             <Button variant="destructive" className="mb-2 w-full justify-start rounded-lg" onClick={() => logout()}>
               <LogOut className="mr-2 h-4 w-4" />
@@ -98,11 +105,6 @@ const AdminLayout = ({ menuSections, active, onChange, pageTitle, breadcrumb = [
                   ))}
                 </div>
                 <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{pageTitle}</h2>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                <span className="font-medium text-slate-900">{userName || t("admin.layout.userFallback")}</span>
-                <span className="mx-2 text-slate-300">•</span>
-                <span>{role || t("admin.layout.roleFallback")}</span>
               </div>
             </div>
           </header>

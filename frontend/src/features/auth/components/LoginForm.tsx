@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,10 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/services/api/errors";
 import { ROUTES } from "@/lib/constants";
-import { useAuth } from "../hooks/useAuth";
-import { ensureSession, login } from "../services/auth.service";
+import { ensureSession, login, loginWithGoogle } from "../services/auth.service";
+
+/** Fixed control height + radius for login actions (44px ≈ h-11, 8px radius). */
+const LOGIN_CONTROL_H = "h-11 min-h-[44px]";
+const LOGIN_RADIUS = "rounded-lg";
 
 const LoginForm = () => {
   const { t } = useTranslation();
@@ -21,6 +25,109 @@ const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isChecking, setIsChecking] = useState(true);
+  const [googleReady, setGoogleReady] = useState(false);
+  const googleButtonHostRef = useRef<HTMLDivElement | null>(null);
+
+  const googleClientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID as string | undefined;
+
+  const onGoogleCredential = useCallback(
+    async (response: { credential?: string }) => {
+      const credential = response?.credential || "";
+      if (!credential) {
+        setError(t("auth.login.errorGoogle"));
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError("");
+      try {
+        await loginWithGoogle(credential);
+        const redirect = searchParams.get("redirect") || ROUTES.ADMIN_ROOT;
+        navigate(redirect, { replace: true });
+      } catch (e) {
+        setError(getApiErrorMessage(e, t("auth.login.errorGoogle")));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [navigate, searchParams, t],
+  );
+
+  useEffect(() => {
+    if (!googleClientId) {
+      return;
+    }
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if ((window as any).google?.accounts?.id) {
+      setGoogleReady(true);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client?hl=vi";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setGoogleReady(true);
+    script.onerror = () => setGoogleReady(false);
+    document.head.appendChild(script);
+
+    return () => {
+      // keep script cached for subsequent visits
+    };
+  }, [googleClientId]);
+
+  /** Single Google CTA via renderButton only (no One Tap / duplicate custom button). */
+  useEffect(() => {
+    // Host mount is inside the card, which only exists after session check — without `isChecking`
+    // in deps, this effect can run while `googleReady` is true but `host` is still null and never re-run.
+    if (!googleClientId || !googleReady || isChecking) {
+      return;
+    }
+
+    const gid = (window as any).google?.accounts?.id;
+    const host = googleButtonHostRef.current;
+    if (!gid || !host) {
+      return;
+    }
+
+    host.innerHTML = "";
+
+    gid.initialize({
+      client_id: googleClientId,
+      callback: onGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: true,
+      use_fedcm_for_prompt: false,
+    });
+
+    const render = () => {
+      const w = Math.max(280, Math.floor(host.getBoundingClientRect().width));
+      gid.renderButton(host, {
+        type: "standard",
+        theme: "filled_blue",
+        size: "large",
+        text: "continue_with",
+        shape: "rectangular",
+        width: w,
+      });
+    };
+
+    requestAnimationFrame(render);
+
+    return () => {
+      host.innerHTML = "";
+      try {
+        gid.cancel();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [googleClientId, googleReady, isChecking, onGoogleCredential]);
 
   useEffect(() => {
     let mounted = true;
@@ -61,35 +168,69 @@ const LoginForm = () => {
 
   if (isChecking) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[linear-gradient(180deg,#f3f4f6_0%,#fafafa_42%,#ffffff_100%)]">
-        <div className="text-center">
-          <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-red-700" />
-          <p className="text-slate-600">{t("auth.login.checking")}</p>
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-muted/40 to-background px-8 py-8">
+        <div className="text-center" role="status" aria-live="polite">
+          <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">{t("auth.login.checking")}</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[linear-gradient(180deg,#f3f4f6_0%,#fafafa_42%,#ffffff_100%)] px-4 py-8 text-slate-900">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(185,28,28,0.08),_transparent_38%),radial-gradient(circle_at_bottom_right,_rgba(15,23,42,0.06),_transparent_28%)]" />
+  const inputFocusClass =
+    "transition-[box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2";
 
-      <Card className="relative w-full max-w-[420px] border-slate-200/80 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-sm">
-        <CardHeader className="space-y-4 pb-4 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-red-100 bg-red-50 text-red-700 shadow-sm">
-            <ShieldCheck className="h-7 w-7" />
+  return (
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-muted/40 to-background px-4 py-8 text-foreground sm:px-6">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_hsl(var(--primary)/0.06),_transparent_40%)]" />
+
+      <Card className={`relative w-full max-w-[420px] border border-border bg-card shadow-lg ${LOGIN_RADIUS}`}>
+        <CardHeader className="space-y-3 px-8 pb-2 pt-8 text-center">
+          <div
+            className={`mx-auto flex ${LOGIN_CONTROL_H} w-14 items-center justify-center ${LOGIN_RADIUS} border border-primary/15 bg-primary/5 text-primary`}
+          >
+            <ShieldCheck className="h-6 w-6" aria-hidden />
           </div>
 
-          <div className="space-y-1">
-            <CardTitle className="text-2xl font-semibold tracking-tight text-slate-900">{t("auth.login.title")}</CardTitle>
-            <CardDescription className="text-sm text-slate-600">{t("auth.login.subtitle")}</CardDescription>
+          <div className="space-y-1.5">
+            <CardTitle className="text-2xl font-bold tracking-tight text-foreground">{t("auth.login.title")}</CardTitle>
+            <CardDescription className="text-xs font-normal leading-relaxed text-muted-foreground">
+              {t("auth.login.subtitle")}
+            </CardDescription>
           </div>
         </CardHeader>
 
-        <CardContent className="px-6 pb-6 pt-0 sm:px-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+        <CardContent className="flex flex-col gap-6 px-8 pb-8 pt-2">
+          {googleClientId ? (
+            <div className="flex flex-col gap-3">
+              <p className="sr-only">{t("auth.login.googleContinue")}</p>
+              <div
+                ref={googleButtonHostRef}
+                className={`flex min-h-[48px] w-full justify-center [&_iframe]:!max-w-full ${!googleReady ? "items-center justify-center" : ""}`}
+                aria-label={t("auth.login.googleContinue")}
+              />
+              {!googleReady ? (
+                <div className="flex justify-center py-2" role="status" aria-live="polite">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {googleClientId ? (
+            <div className="relative py-1">
+              <div className="absolute inset-0 flex items-center" aria-hidden>
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs font-medium">
+                <span className="bg-card px-3 text-muted-foreground">{t("auth.login.orEmail")}</span>
+              </div>
+            </div>
+          ) : null}
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email" className="text-sm font-medium text-foreground">
                 {t("auth.login.email")}
               </Label>
               <Input
@@ -100,14 +241,19 @@ const LoginForm = () => {
                 autoComplete="email"
                 placeholder="admin@example.com"
                 aria-invalid={Boolean(error)}
-                className={`h-11 rounded-lg bg-white transition-colors focus-visible:border-red-500 focus-visible:ring-red-500 ${
-                  error ? "border-red-300 focus-visible:border-red-500 focus-visible:ring-red-500" : "border-slate-300"
-                }`}
+                disabled={isLoading}
+                className={cn(
+                  LOGIN_CONTROL_H,
+                  LOGIN_RADIUS,
+                  "border-input bg-background px-3.5 text-base text-foreground placeholder:text-muted-foreground",
+                  inputFocusClass,
+                  error ? "border-destructive focus-visible:ring-destructive/25" : "",
+                )}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-slate-700">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password" className="text-sm font-medium text-foreground">
                 {t("auth.login.password")}
               </Label>
               <div className="relative">
@@ -119,48 +265,70 @@ const LoginForm = () => {
                   autoComplete="current-password"
                   placeholder={t("auth.login.passwordPlaceholder")}
                   aria-invalid={Boolean(error)}
-                  className={`h-11 rounded-lg bg-white pr-11 transition-colors focus-visible:border-red-500 focus-visible:ring-red-500 ${
-                    error ? "border-red-300 focus-visible:border-red-500 focus-visible:ring-red-500" : "border-slate-300"
-                  }`}
+                  disabled={isLoading}
+                  className={cn(
+                    LOGIN_CONTROL_H,
+                    LOGIN_RADIUS,
+                    "border-input bg-background px-3.5 pr-12 text-base text-foreground placeholder:text-muted-foreground",
+                    inputFocusClass,
+                    error ? "border-destructive focus-visible:ring-destructive/25" : "",
+                  )}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((current) => !current)}
-                  className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-slate-500 transition-colors hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                  className={cn(
+                    "absolute right-0 top-0 flex w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground",
+                    LOGIN_CONTROL_H,
+                    LOGIN_RADIUS,
+                    "rounded-l-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2",
+                  )}
                   aria-label={showPassword ? t("auth.login.hidePassword") : t("auth.login.showPassword")}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-4 w-4 shrink-0" /> : <Eye className="h-4 w-4 shrink-0" />}
                 </button>
               </div>
             </div>
 
             {error ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+              <div
+                className={`${LOGIN_RADIUS} border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive`}
+                role="alert"
+              >
                 {error}
               </div>
             ) : null}
 
-            <Button
-              type="submit"
-              className="h-11 w-full rounded-lg bg-red-700 font-semibold text-white transition-colors hover:bg-red-800 active:bg-red-900"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {t("auth.login.submitting")}
-                </span>
-              ) : (
-                t("auth.login.submit")
-              )}
-            </Button>
+            <div className="flex flex-col gap-3 pt-1">
+              <Button
+                type="submit"
+                variant="outline"
+                className={cn(
+                  LOGIN_CONTROL_H,
+                  LOGIN_RADIUS,
+                  "w-full border-input font-semibold text-foreground shadow-sm hover:bg-muted/60",
+                )}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    {t("auth.login.submitting")}
+                  </span>
+                ) : (
+                  t("auth.login.submit")
+                )}
+              </Button>
+            </div>
 
-            <div className="flex flex-col items-center gap-3 pt-2 text-sm sm:flex-row sm:justify-between sm:gap-4">
-              <a href="/" className="font-medium text-slate-600 transition-colors hover:text-slate-900">
+            <div className="flex flex-col items-center gap-3 border-t border-border pt-4 text-sm sm:flex-row sm:justify-between">
+              <a
+                href="/"
+                className="font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+              >
                 {t("auth.login.backHome")}
               </a>
-
-              <span className="text-slate-400">{t("auth.login.forgotPassword")}</span>
+              <span className="text-muted-foreground/80">{t("auth.login.forgotPassword")}</span>
             </div>
           </form>
         </CardContent>

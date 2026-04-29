@@ -1,4 +1,4 @@
-import type { CreatePostInput, Post, UpdatePostInput } from "@/shared/types/post";
+import type { CreatePostInput, Post, PostReview, UpdatePostInput } from "@/shared/types/post";
 import axiosClient from "@/services/axiosClient";
 import { ApiEndpoints } from "./endpoints";
 
@@ -29,6 +29,18 @@ type BackendPost = {
   content: string;
   thumbnail?: string;
   status?: "draft" | "published" | "archived";
+  workflowStatus?: "draft" | "pending" | "approved" | "published" | "archived";
+  review?: {
+    submittedAt?: string | null;
+    submittedBy?: { _id?: string; id?: string; username?: string } | string | null;
+    reviewedAt?: string | null;
+    reviewedBy?: { _id?: string; id?: string; username?: string } | string | null;
+    decisionNote?: string;
+  };
+  revision?: {
+    current?: number;
+    lastPublished?: number;
+  };
   publishedAt?: string;
   excerpt?: string;
   seoTitle?: string;
@@ -74,6 +86,29 @@ type LegacyPaginatedResponse<T> = {
 type PaginatedBackendPostResponse =
   | CanonicalPaginatedResponse<BackendPost>
   | LegacyPaginatedResponse<BackendPost>;
+
+type BackendUserRef = { _id?: string; id?: string; username?: string } | string | null | undefined;
+
+const normalizeUserRef = (value: BackendUserRef): PostReview["submittedBy"] => {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value === "string") return value;
+
+  const id = value.id || value._id || "";
+  if (!id) return null;
+  return { id, username: value.username };
+};
+
+const normalizeReview = (review?: BackendPost["review"]): PostReview | undefined => {
+  if (!review) return undefined;
+  return {
+    submittedAt: review.submittedAt ?? null,
+    submittedBy: normalizeUserRef(review.submittedBy),
+    reviewedAt: review.reviewedAt ?? null,
+    reviewedBy: normalizeUserRef(review.reviewedBy),
+    decisionNote: review.decisionNote || "",
+  };
+};
 
 const normalizePaginatedResponse = <Item, Mapped>(
   payload: CanonicalPaginatedResponse<Item> | LegacyPaginatedResponse<Item> | Item[] | null | undefined,
@@ -155,6 +190,9 @@ const mapPost = (item: BackendPost): Post => ({
   excerpt: item.excerpt || "",
   seoTitle: item.seoTitle || "",
   seoDescription: item.seoDescription || "",
+  workflowStatus: item.workflowStatus,
+  review: normalizeReview(item.review),
+  revision: item.revision,
   viewCount: typeof item.viewCount === "number" ? item.viewCount : 0,
   author: item.author
     ? {
@@ -197,8 +235,8 @@ export const getCmsPosts = async (): Promise<Post[]> => {
 };
 
 export const getPostById = async (id: string): Promise<Post | null> => {
-  const posts = await getCmsPosts();
-  return posts.find((item) => item.id === id) || null;
+  const { data } = await axiosClient.get<BackendPost>(ApiEndpoints.cmsPostById(id));
+  return data ? mapPost(data) : null;
 };
 
 export const getPostBySlug = async (slug: string): Promise<Post | null> => {
@@ -226,5 +264,25 @@ export const deletePost = async (id: string): Promise<boolean> => {
 
 export const publishPost = async (id: string): Promise<Post | null> => {
   const { data } = await axiosClient.put<BackendPost>(ApiEndpoints.postPublish(id));
+  return data ? mapPost(data) : null;
+};
+
+export const submitPost = async (id: string): Promise<Post | null> => {
+  const { data } = await axiosClient.post<BackendPost>(ApiEndpoints.postSubmit(id), {});
+  return data ? mapPost(data) : null;
+};
+
+export const approvePost = async (id: string): Promise<Post | null> => {
+  const { data } = await axiosClient.post<BackendPost>(ApiEndpoints.postApprove(id), {});
+  return data ? mapPost(data) : null;
+};
+
+export const rejectPost = async (id: string, note: string): Promise<Post | null> => {
+  const { data } = await axiosClient.post<BackendPost>(ApiEndpoints.postReject(id), { note });
+  return data ? mapPost(data) : null;
+};
+
+export const unpublishPost = async (id: string): Promise<Post | null> => {
+  const { data } = await axiosClient.post<BackendPost>(ApiEndpoints.postUnpublish(id), {});
   return data ? mapPost(data) : null;
 };

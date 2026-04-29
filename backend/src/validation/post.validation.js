@@ -2,10 +2,12 @@ const { z } = require("zod");
 
 const titleSchema = z.string().trim().min(10, "Title must be at least 10 characters");
 const contentSchema = z.string().trim().min(50, "Content must be at least 50 characters");
+const slugSchema = z.string().trim().min(1, "Slug is required").max(200, "Slug is too long");
 
 const createPostSchema = z
   .object({
     title: titleSchema,
+    slug: slugSchema.optional(),
     content: contentSchema,
     thumbnail: z.string().trim().max(2048, "Thumbnail is too long").optional(),
     status: z.enum(["draft", "published"]).optional(),
@@ -19,6 +21,7 @@ const createPostSchema = z
 const updatePostSchema = z
   .object({
     title: titleSchema.optional(),
+    slug: slugSchema.optional(),
     content: contentSchema.optional(),
     thumbnail: z.string().trim().max(2048, "Thumbnail is too long").optional(),
     status: z.enum(["draft", "published", "archived"]).optional(),
@@ -36,4 +39,9 @@ const updatePostSchema = z
 module.exports = {
   createPostSchema,
   updatePostSchema,
+  rejectPostSchema: z
+    .object({
+      note: z.string().trim().min(1, "Rejection note is required").max(2000, "Note is too long"),
+    })
+    .strict(),
 };

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ElementType } from "react";
 import { useTranslation } from "react-i18next";
-import { FileText, LayoutDashboard, Settings } from "lucide-react";
+import { FileText, LayoutDashboard, Settings, Users } from "lucide-react";
 import AdminLayout from "@/app/layout/AdminLayout";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { getCmsData, updateCmsData } from "@/services/api/cmsApi";
@@ -13,7 +13,8 @@ import { ROUTES } from "@/lib/constants";
 type AdminKey =
   | "dashboard"
   | "posts"
-  | "config";
+  | "config"
+  | "users";
 
 type AdminMenuItem = { key: AdminKey; label: string; icon: ElementType };
 type AdminMenuSection = { label: string; items: AdminMenuItem[] };
@@ -42,7 +43,10 @@ const Admin = () => {
       },
       {
         label: t("admin.sections.system"),
-        items: [{ key: "config", label: t("admin.menu.configManager"), icon: Settings }],
+        items: [
+          { key: "config", label: t("admin.menu.configManager"), icon: Settings },
+          { key: "users", label: t("admin.menu.userManager"), icon: Users },
+        ],
       },
     ],
     [t],
@@ -61,6 +65,10 @@ const Admin = () => {
       config: {
         title: t("admin.menu.configManager"),
         breadcrumb: [t("admin.sections.system"), t("admin.menu.configManager")],
+      },
+      users: {
+        title: t("admin.menu.userManager"),
+        breadcrumb: [t("admin.sections.system"), t("admin.menu.userManager")],
       },
     }),
     [t],
@@ -91,6 +99,8 @@ const Admin = () => {
       ? "posts"
       : location.pathname.includes(ROUTES.ADMIN_CONFIG)
       ? "config"
+      : location.pathname.includes(ROUTES.ADMIN_USERS)
+      ? "users"
       : "dashboard";
   const page = pageMeta[active];
 
